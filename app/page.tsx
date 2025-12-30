@@ -107,7 +107,7 @@ export default function Home() {
               <div key={i} className="group cursor-pointer">
                 <div className="overflow-hidden bg-gray-100 aspect-[3/4] mb-4">
                   <img 
-                    src={`https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=800&auto=format&fit=crop&q=80`}
+                    src={"/images/gallery-1.jpg" }
                     alt="Art"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
                   />

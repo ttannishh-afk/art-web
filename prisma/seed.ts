@@ -1,63 +1,89 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting seed...')
+  console.log("Start seeding...");
 
-  // 1. Clear existing data (optional, prevents duplicates)
-  await prisma.product.deleteMany()
+  // Clear DB to avoid duplicates
+  await prisma.cartItem.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.product.deleteMany();
 
-  // 2. Create Sample Products
   await prisma.product.createMany({
     data: [
+      // --- OIL ---
       {
-        title: "The Midnight Bloom",
-        description: "An oil painting depicting the quiet solitude of night.",
-        price: 450.00,
-        category: "ORIGINAL",
-        images: ["https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=800"],
+        title: "Crimson Silence",
+        description: "Oil on canvas. A deep study of red hues.",
+        price: 1200.00,
+        category: "OIL",
+        stock: 1, 
+        featured: true,
+        images: ["/images/gallery-1.jpg"] // <--- Local Path
+      },
+      {
+        title: "The Old Harbor",
+        description: "Oil on linen. Textured strokes.",
+        price: 950.00,
+        category: "OIL",
         stock: 1,
-        featured: true
+        featured: false,
+        images: ["/images/gallery-1.jpg"] 
       },
-      {
-        title: "Neon Dreams",
-        description: "A digital print exploring cyberpunk aesthetics.",
-        price: 45.00,
-        category: "PRINT",
-        images: ["https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=800"],
-        stock: 50,
-        featured: true
-      },
-      {
-        title: "Abstract Chaos",
-        description: "Limited edition print. Signed by the artist.",
-        price: 120.00,
-        category: "PRINT",
-        images: ["https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&w=800"],
-        stock: 10,
-        featured: false
-      },
-      {
-        title: "Golden Hour Study",
-        description: "Sketch on archival paper.",
-        price: 85.00,
-        category: "ORIGINAL",
-        images: ["https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=800"],
-        stock: 1,
-        featured: true
-      }
-    ]
-  })
 
-  console.log('✅ Seed finished.')
+      // --- ACRYLIC ---
+      {
+        title: "Neon City Abstract",
+        description: "Heavy body acrylics on canvas.",
+        price: 600.00,
+        category: "ACRYLIC",
+        stock: 3,
+        featured: true,
+        images: ["/images/gallery-1.jpg"]
+      },
+      {
+        title: "Fluid Motion III",
+        description: "Acrylic pour on round canvas.",
+        price: 350.00,
+        category: "ACRYLIC",
+        stock: 2,
+        featured: false,
+        images: ["/images/gallery-1.jpg"]
+      },
+
+      // --- WATERCOLOR ---
+      {
+        title: "Misty Mountains",
+        description: "Watercolor on cold press paper.",
+        price: 180.00,
+        category: "WATERCOLOR",
+        stock: 5,
+        featured: false,
+        images: ["/images/gallery-1.jpg"]
+      },
+
+       // --- SKETCH ---
+       {
+        title: "Figure Study No. 5",
+        description: "Charcoal on toned paper.",
+        price: 120.00,
+        category: "SKETCH",
+        stock: 1,
+        featured: false,
+        images: ["/images/gallery-1.jpg"]
+      },
+    ],
+  });
+
+  console.log("Seeding finished.");
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });
