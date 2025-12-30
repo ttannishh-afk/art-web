@@ -1,66 +1,109 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, User, Hexagon } from "lucide-react"; // Added Hexagon for logo
+import { usePathname } from "next/navigation";
+import { ShoppingBag, User, Hexagon } from "lucide-react"; // Removed LogOut as it is now on the Profile page
 import { useCart } from "@/hooks/use-cart";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import AuthModal from "@/components/auth/AuthModal";
 
 export function Navbar() {
   const cart = useCart();
+  const { data: session } = useSession();
   const [isMounted, setIsMounted] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  
+  const pathname = usePathname();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const getLinkClass = (path: string) => {
+    return pathname === path 
+      ? "text-sm font-bold text-black border-b-2 border-black pb-1 transition-all" 
+      : "text-sm font-medium text-gray-500 hover:text-black transition-colors pb-1 border-b-2 border-transparent";
+  };
+
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          
-          {/* Logo Section */}
-          <div className="flex-shrink-0 flex items-center gap-2">
-             {/* Logo Placeholder */}
-            <div className="bg-black text-white p-1 rounded-md">
-              <Hexagon className="h-6 w-6 fill-current" /> 
+    <>
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="w-full px-6 md:px-10">
+          <div className="flex justify-between items-center h-16">
+            
+            {/* Logo Section */}
+            <div className="flex-shrink-0 flex items-center gap-3">
+              <div className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
+                <Hexagon className="h-5 w-5 fill-current" /> 
+              </div>
+              <Link href="/" className="font-serif text-2xl tracking-tighter text-black leading-none pt-1">
+                TANISH GUPTA
+              </Link>
             </div>
-            <Link href="/" className="font-serif text-2xl tracking-tighter text-black">
-              TANISH GUPTA
-            </Link>
-          </div>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex space-x-8">
-            <Link href="/gallery" className="text-sm font-medium text-gray-900 hover:text-gray-500">
-              GALLERY
-            </Link>
-            <Link href="/shop" className="text-sm font-medium text-gray-900 hover:text-gray-500">
-              SHOP
-            </Link>
-            <Link href="/about" className="text-sm font-medium text-gray-900 hover:text-gray-500">
-              ABOUT
-            </Link>
-            {/* New Contact Tab */}
-            <Link href="/contact" className="text-sm font-medium text-gray-900 hover:text-gray-500">
-              CONTACT US
-            </Link>
-          </div>
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex space-x-8">
+              <Link href="/" className={getLinkClass("/")}>
+                HOME
+              </Link>
+              <Link href="/gallery" className={getLinkClass("/gallery")}>
+                GALLERY
+              </Link>
+              <Link href="/shop" className={getLinkClass("/shop")}>
+                SHOP
+              </Link>
+              <Link href="/about" className={getLinkClass("/about")}>
+                ABOUT
+              </Link>
+              <Link href="/contact" className={getLinkClass("/contact")}>
+                CONTACT US
+              </Link>
+            </div>
 
-          <div className="flex items-center space-x-6">
-            <Link href="/cart" className="relative group">
-              <ShoppingBag className="h-5 w-5 text-gray-700 group-hover:text-black transition-colors" />
-              {isMounted && cart.items.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
-                  {cart.items.length}
-                </span>
+            {/* Icons Section */}
+            <div className="flex items-center space-x-6">
+              
+              {/* CART ICON */}
+              {session && (
+                <Link href="/cart" className={`relative group ${pathname === "/cart" ? "text-black" : "text-gray-700"}`}>
+                  <ShoppingBag className="h-5 w-5 group-hover:text-black transition-colors" />
+                  {isMounted && cart.items.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center">
+                      {cart.items.length}
+                    </span>
+                  )}
+                </Link>
               )}
-            </Link>
-            <Link href="/login">
-              <User className="h-5 w-5 text-gray-700 hover:text-black transition-colors" />
-            </Link>
+
+              {/* USER ICON LOGIC */}
+              {session ? (
+                // LOGGED IN: Go to Profile
+                <Link 
+                  href="/profile" 
+                  className={`text-gray-700 hover:text-black transition-colors ${pathname === "/profile" ? "text-black" : ""}`}
+                  title="My Profile"
+                >
+                  <User className="h-5 w-5" />
+                </Link>
+              ) : (
+                // LOGGED OUT: Open Login Modal
+                <button 
+                  onClick={() => setShowAuthModal(true)} 
+                  className="text-gray-700 hover:text-black transition-colors"
+                >
+                   <User className="h-5 w-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
+    </>
   );
 }

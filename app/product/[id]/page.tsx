@@ -1,82 +1,68 @@
-import { db } from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
-import { ShoppingBag, Check } from "lucide-react";
-import { AddToCartButton } from "@/components/shop/AddToCartButton";
+import AddToCartButton from "@/components/shop/AddToCartButton";
+import Image from "next/image"; // <--- Import this
 
-// 1. Update the interface to expect a Promise
+const prisma = new PrismaClient();
+
 interface ProductPageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-  // 2. AWAIT the params before using them
-  const { id } = await params;
-
-  // 3. Fetch the specific product using the awaited ID
-  const product = await db.product.findUnique({
-    where: {
-      id: id,
-    },
+export default async function ProductPage(props: ProductPageProps) {
+  const params = await props.params;
+  const product = await prisma.product.findUnique({
+    where: { id: params.id },
   });
 
-  if (!product) {
-    return notFound();
-  }
+  if (!product) return notFound();
 
   return (
-    <div className="bg-white min-h-screen pt-12 pb-24">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
+    <div className="min-h-screen bg-white pt-32 pb-20 px-6">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
         
-        {/* LEFT: Image Gallery */}
-        <div className="space-y-4">
-          <div className="aspect-[4/5] bg-gray-100 overflow-hidden w-full">
-            <img
-              src={product.images[0]}
-              alt={product.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
+        {/* OPTIMIZED IMAGE SECTION */}
+        <div className="relative aspect-[3/4] bg-gray-50 border border-gray-100">
+           <Image
+             src={product.images[0]}
+             alt={product.title}
+             fill
+             className="object-cover"
+             sizes="(max-width: 768px) 100vw, 50vw"
+             priority // Loads this image first because it's the main focus
+           />
         </div>
 
-        {/* RIGHT: Details & Buy */}
-        <div className="sticky top-32">
-          <div className="mb-8">
-            <h1 className="font-serif text-4xl md:text-5xl text-black mb-2">
-              {product.title}
-            </h1>
-            <p className="text-xl text-gray-600 font-light">
-              ${Number(product.price).toFixed(2)}
-            </p>
-          </div>
-
-          <div className="prose prose-stone mb-8 text-gray-600">
-            <p>{product.description}</p>
-          </div>
-
-          <div className="space-y-4 border-t border-gray-100 pt-8">
-            <div className="flex items-center text-sm text-gray-500">
-              <Check className="h-4 w-4 mr-2 text-green-500" />
-              {product.stock > 0 ? "In Stock & Ready to Ship" : "Currently Out of Stock"}
+        {/* ... (Rest of the file remains exactly the same) ... */}
+        <div className="flex flex-col justify-center">
+            <h1 className="font-serif text-4xl md:text-5xl mb-4">{product.title}</h1>
+            <p className="text-sm tracking-widest text-gray-400 uppercase mb-8">{product.category}</p>
+            <p className="text-xl font-medium mb-8">$ {Number(product.price).toFixed(2)}</p>
+            <div className="prose prose-sm text-gray-500 mb-10 leading-relaxed">
+                <p>{product.description}</p>
             </div>
             
-            <div className="flex items-center text-sm text-gray-500">
-              <span className="font-medium mr-2">Category:</span> 
-              <span className="capitalize">{product.category.toLowerCase()}</span>
+            {product.stock > 0 ? (
+              <AddToCartButton 
+                data={{
+                  id: product.id,
+                  title: product.title,
+                  price: product.price.toString(),
+                  image: product.images[0],
+                  maxStock: product.stock
+                }} 
+              />
+            ) : (
+              <button disabled className="w-full bg-gray-200 text-gray-500 py-4 font-bold tracking-widest cursor-not-allowed">
+                SOLD OUT
+              </button>
+            )}
+            
+            <div className="mt-12 border-t border-gray-100 pt-8 text-xs text-gray-400 space-y-2">
+                <p>• Authenticity Certificate included</p>
+                <p>• Free worldwide shipping on originals</p>
+                <p>• 14-day satisfaction guarantee</p>
             </div>
-          </div>
-
-          {/* Add to Cart Button */}
-        <AddToCartButton 
-  disabled={product.stock === 0}
-  data={{
-    id: product.id,
-    title: product.title,
-    price: product.price.toString(), // Convert Decimal to string
-    image: product.images[0]
-  }}
-/>
         </div>
       </div>
     </div>

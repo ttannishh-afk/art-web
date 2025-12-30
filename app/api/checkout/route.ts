@@ -1,73 +1,92 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
+const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // 1. Get User and Cart
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: {
+      cart: {
+        include: {
+          items: {
+            include: { product: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!user || !user.cart || user.cart.items.length === 0) {
+    return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+  }
+
+  // 2. CHECK STOCK for all items before processing
+  for (const item of user.cart.items) {
+    if (item.product.stock < item.quantity) {
+      return NextResponse.json(
+        { error: `Sorry, ${item.product.title} is out of stock (Only ${item.product.stock} left).` }, 
+        { status: 400 }
+      );
+    }
+  }
+
+  // 3. Process Order & REDUCE STOCK
+  // We use a transaction to ensure stock is only reduced if order succeeds
   try {
-    // 1. Get the list of product IDs from the cart
-    const { productIds } = await req.json();
-
-    if (!productIds || productIds.length === 0) {
-      return new NextResponse("Product IDs are required", { status: 400 });
-    }
-
-    // 2. Fetch actual products from DB (Secure price calculation)
-    const products = await db.product.findMany({
-      where: {
-        id: {
-          in: productIds
+    const result = await prisma.$transaction(async (tx) => {
+      
+      // A. Create Order
+      const total = user.cart!.items.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+      
+      const order = await tx.order.create({
+        data: {
+          userId: user.id,
+          total: total,
+          status: "PAID",
+          items: {
+            create: user.cart!.items.map((item) => ({
+              productId: item.product.id,
+              quantity: item.quantity,
+              price: item.product.price
+            }))
+          }
         }
-      }
-    });
+      });
 
-    // 3. Calculate Total Price
-    const total = products.reduce((sum, product) => {
-      return sum + Number(product.price);
-    }, 0);
-
-    // 4. Create the Order in Database
-    const order = await db.order.create({
-      data: {
-        total: total,
-        status: "PAID", // Simulating a successful payment
-        userId: null,   // Guest Checkout for now
-        items: {
-          create: products.map((product) => ({
-            product: {
-              connect: {
-                id: product.id
-              }
-            },
-            quantity: 1,
-            price: product.price
-          }))
-        }
-      }
-    });
-
-    // 5. Update Stock (Optional but "Proper")
-    // For each product bought, reduce stock by 1
-    /* for (const product of products) {
-        await db.product.update({
-            where: { id: product.id },
-            data: { stock: product.stock - 1 }
+      // B. Reduce Stock for each item
+      for (const item of user.cart!.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
         });
-    }
-    */
+      }
 
-    return NextResponse.json({ success: true, orderId: order.id }, { headers: corsHeaders });
+      // C. Clear Cart
+      await tx.cartItem.deleteMany({
+        where: { cartId: user.cart!.id }
+      });
+
+      return order;
+    });
+
+    return NextResponse.json({ success: true, orderId: result.id });
 
   } catch (error) {
-    console.log("[CHECKOUT_POST]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("Checkout Error:", error);
+    return NextResponse.json({ error: "Transaction failed" }, { status: 500 });
   }
 }
