@@ -91,3 +91,12 @@ enum OrderStatus {
   PAID
   SHIPPED
 }
+
+model GalleryItem {
+  id        String   @id @default(uuid())
+  title     String
+  year      String
+  size      String   // "tall" | "wide" | "square"
+  src       String   // Image path
+  createdAt DateTime @default(now())
+}

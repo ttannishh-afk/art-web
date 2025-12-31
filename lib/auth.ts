@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+export const ADMIN_EMAILS = ["tanishgupta69@gmail.com"];
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
