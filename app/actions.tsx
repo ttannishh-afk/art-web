@@ -265,6 +265,8 @@ export async function updateCartItemQuantity(productId: string, newQuantity: num
 
 // app/actions.tsx
 
+// app/actions.tsx
+
 export async function placeOrder() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return { error: "Not logged in" };
@@ -280,52 +282,58 @@ export async function placeOrder() {
     }
   });
 
+  // 1. Validate Cart
   if (!user?.cart || user.cart.items.length === 0) {
     return { error: "Cart is empty" };
   }
 
+  // 2. ⚡️ Capture data safely here to satisfy TypeScript
+  const cartItems = user.cart.items;
+  const cartId = user.cart.id;
+  const userId = user.id;
+
   // Calculate Total
-  const total = user.cart.items.reduce((sum, item) => {
+  const total = cartItems.reduce((sum, item) => {
     return sum + (Number(item.product.price) * item.quantity);
   }, 0);
 
-  // ⚡️ USE TRANSACTION: Do everything safely at once
+  // 3. Database Transaction
   await prisma.$transaction(async (tx) => {
     
-    // 1. Create the Order
+    // Create the Order
     await tx.order.create({
       data: {
-        userId: user.id,
+        userId: userId,
         total: total,
         status: "PENDING",
         items: {
-          create: user.cart.items.map(item => ({
+          create: cartItems.map(item => ({  // 👈 Using the safe variable here
             productId: item.productId,
             quantity: item.quantity,
-            price: item.product.price // Snapshot price at time of purchase
+            price: item.product.price
           }))
         }
       }
     });
 
-    // 2. Decrement Stock for EACH item
-    for (const item of user.cart.items) {
+    // Decrement Stock
+    for (const item of cartItems) {
       await tx.product.update({
         where: { id: item.productId },
         data: { 
-          stock: { decrement: item.quantity } // 👇 This subtracts from the DB
+          stock: { decrement: item.quantity } 
         }
       });
     }
 
-    // 3. Clear the Cart
+    // Clear the Cart
     await tx.cartItem.deleteMany({
-      where: { cartId: user.cart.id }
+      where: { cartId: cartId }
     });
   });
 
-  // 4. Refresh UI and Redirect
+  // 4. Finish
   revalidatePath("/", "layout");
-  revalidatePath("/admin"); // Update admin dashboard too
+  revalidatePath("/admin");
   redirect("/success");
 }
