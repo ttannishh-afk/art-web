@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, User, Hexagon, Menu, X } from "lucide-react"; // 👈 Added Menu, X
+import { ShoppingBag, User, Hexagon, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import AuthModal from "@/components/auth/AuthModal";
-import { motion, AnimatePresence } from "framer-motion"; // 👈 For smooth mobile animation
+import { motion, AnimatePresence } from "framer-motion"; 
+// 👇 Import the global hook
+import { useAuthModal } from "@/components/providers/AuthModalProvider"; 
 
 interface NavbarClientProps {
   cartCount: number;
@@ -15,11 +16,10 @@ interface NavbarClientProps {
 
 export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) {
   const { data: session } = useSession();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // 👈 Mobile State
+  const { openAuthModal } = useAuthModal(); // 👈 Use Global Hook
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -36,7 +36,7 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
         <div className="w-full px-6 md:px-10">
           <div className="flex justify-between items-center h-16">
             
-            {/* === LEFT: LOGO === */}
+            {/* LOGO */}
             <div className="flex-shrink-0 flex items-center gap-3">
               <div className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
                 <Hexagon className="h-5 w-5 fill-current" /> 
@@ -46,7 +46,7 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
               </Link>
             </div>
 
-            {/* === CENTER: DESKTOP NAV === */}
+            {/* DESKTOP NAV */}
             <div className="hidden lg:flex space-x-6">
               <Link href="/" className={getLinkClass("/")}>HOME</Link>
               <Link href="/for-work" className={getLinkClass("/for-work")}>FOR WORK</Link>
@@ -63,10 +63,8 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
               )}
             </div>
 
-            {/* === RIGHT: ICONS & HAMBURGER === */}
+            {/* ICONS */}
             <div className="flex items-center space-x-5">
-              
-              {/* CART */}
               <Link href="/cart" className={`relative group ${pathname === "/cart" ? "text-black" : "text-gray-700"}`}>
                 <ShoppingBag className="h-5 w-5 group-hover:text-black transition-colors" />
                 {cartCount > 0 && (
@@ -76,18 +74,19 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
                 )}
               </Link>
 
-              {/* USER */}
               {session ? (
                 <Link href="/profile" className={`hidden md:block text-gray-700 hover:text-black transition-colors ${pathname === "/profile" ? "text-black" : ""}`}>
                   <User className="h-5 w-5" />
                 </Link>
               ) : (
-                <button onClick={() => setShowAuthModal(true)} className="hidden md:block text-gray-700 hover:text-black transition-colors">
+                <button 
+                  onClick={openAuthModal} // 👈 Using global function
+                  className="hidden md:block text-gray-700 hover:text-black transition-colors"
+                >
                    <User className="h-5 w-5" />
                 </button>
               )}
 
-              {/* MOBILE MENU TOGGLE (Visible on small screens) */}
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
                 className="lg:hidden text-black focus:outline-none"
@@ -99,7 +98,7 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
         </div>
       </nav>
 
-      {/* === MOBILE MENU OVERLAY === */}
+      {/* MOBILE MENU */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -122,14 +121,16 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
                <Link href="/shop" className="text-xl font-medium text-gray-600">Shop Art</Link>
             </div>
 
-            {/* Mobile User Actions */}
             <div className="pt-2">
               {session ? (
                  <Link href="/profile" className="flex items-center gap-3 text-lg font-medium">
                     <User className="w-5 h-5" /> My Profile
                  </Link>
               ) : (
-                 <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-3 text-lg font-medium">
+                 <button 
+                    onClick={openAuthModal} // 👈 Using global function
+                    className="flex items-center gap-3 text-lg font-medium"
+                 >
                     <User className="w-5 h-5" /> Login / Join
                  </button>
               )}
@@ -143,8 +144,8 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
           </motion.div>
         )}
       </AnimatePresence>
-
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      
+      {/* ❌ REMOVED <AuthModal /> from here (It's now in Layout) */}
     </>
   );
 }

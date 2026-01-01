@@ -3,13 +3,12 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer"; 
-import { AuthProvider } from "@/components/providers/AuthProvider"; // <--- CORRECT IMPORT PATH
+// 👇 Import both providers
+import { AuthProvider } from "@/components/providers/AuthProvider"; 
+import { AuthModalProvider } from "@/components/providers/AuthModalProvider"; 
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const playfair = Playfair_Display({ 
-  subsets: ["latin"], 
-  variable: "--font-playfair" 
-});
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
   title: "Tanish Gupta | Visual Artist",
@@ -24,12 +23,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+        {/* 1. Session Provider (Existing) */}
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-screen"> 
-            {children}
-          </main>
-          <Footer />
+          
+          {/* 2. UI Modal Provider (New) */}
+          <AuthModalProvider>
+            
+            <Navbar />
+            <main className="min-h-screen"> 
+              {children}
+            </main>
+            <Footer />
+            
+          </AuthModalProvider>
+
         </AuthProvider>
       </body>
     </html>

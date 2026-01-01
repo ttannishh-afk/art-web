@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { authOptions, ADMIN_EMAILS } from "@/lib/auth";
 import { put } from "@vercel/blob";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 async function checkAuth() {
   const session = await getServerSession(authOptions);

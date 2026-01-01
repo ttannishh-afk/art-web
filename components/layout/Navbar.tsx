@@ -1,9 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions, ADMIN_EMAILS } from "@/lib/auth"; // 👈 Import ADMIN_EMAILS
-import { PrismaClient } from "@prisma/client";
 import NavbarClient from "./NavbarClient";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function Navbar() {
   const session = await getServerSession(authOptions);

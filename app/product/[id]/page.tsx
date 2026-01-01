@@ -1,11 +1,10 @@
-import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/shop/AddToCartButton";
 import Image from "next/image";
 import { getServerSession } from "next-auth"; // 👈 New Import
 import { authOptions } from "@/lib/auth";     // 👈 New Import
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;

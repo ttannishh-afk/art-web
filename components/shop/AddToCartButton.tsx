@@ -2,10 +2,12 @@
 
 import { useTransition } from "react";
 import { addToCart } from "@/app/actions"; 
-import { Loader2, Check } from "lucide-react"; // 👈 Added Check icon
+import { Loader2, Check } from "lucide-react";
+import { useSession } from "next-auth/react"; // 👈 Get session status
+import { useAuthModal } from "@/components/providers/AuthModalProvider"; // 👈 Get global modal trigger
 
 interface AddToCartButtonProps {
-  isInCart?: boolean; // 👈 New optional prop
+  isInCart?: boolean;
   data: {
     id: string;
     title: string;
@@ -17,9 +19,20 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ data, isInCart = false }: AddToCartButtonProps) {
   const [isPending, startTransition] = useTransition();
+  const { data: session } = useSession(); // 1. Check if user is logged in
+  const { openAuthModal } = useAuthModal(); // 2. Function to open the popup
 
   const handleAdd = () => {
-    if (isInCart) return; // Prevent clicking if in cart
+    // If already in cart, do nothing (button is technically disabled anyway, but safety first)
+    if (isInCart) return;
+
+    // 3. If NOT logged in, open the popup and stop here
+    if (!session) {
+      openAuthModal();
+      return;
+    }
+
+    // 4. If logged in, proceed to server action
     startTransition(async () => {
       await addToCart(data.id);
     });
