@@ -2,20 +2,82 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { upsertProduct, deleteProduct, upsertGalleryItem, deleteGalleryItem, updateOrderStatus } from "@/app/actions";
+import {
+  upsertProduct,
+  deleteProduct,
+  upsertGalleryItem,
+  deleteGalleryItem,
+  updateInquiryStatus,
+  updateOrderStatus,
+} from "@/app/actions";
 
-interface AdminViewProps {
-  products: any[];
-  galleryItems: any[];
-  orders: any[];
+type OrderStatus = "PENDING" | "PAID" | "SHIPPED";
+type InquiryStatus = "NEW" | "IN_PROGRESS" | "CLOSED";
+
+interface AdminProduct {
+  id: string;
+  title: string;
+  description: string;
+  price: string;
+  stock: number;
+  category: string;
+  images: string[];
 }
 
-export default function AdminView({ products, galleryItems, orders }: AdminViewProps) {
-  const [activeTab, setActiveTab] = useState<"SHOP" | "GALLERY" | "ORDERS">("ORDERS");
-  const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "PAID" | "SHIPPED">("ALL");
+interface AdminGalleryItem {
+  id: string;
+  title: string;
+  year: string;
+  size: string;
+  src: string;
+  category: string;
+}
+
+interface AdminOrder {
+  id: string;
+  createdAt: string | Date;
+  total: string;
+  status: OrderStatus;
+  user: {
+    name: string | null;
+    email: string;
+  };
+  items: Array<{
+    id: string;
+    quantity: number;
+    price: string;
+    product: {
+      id: string;
+      title: string;
+      price: string;
+    };
+  }>;
+}
+
+interface AdminInquiry {
+  id: string;
+  name: string;
+  company: string | null;
+  email: string;
+  inquiryType: string;
+  message: string;
+  status: InquiryStatus;
+  createdAt: string | Date;
+}
+
+interface AdminViewProps {
+  products: AdminProduct[];
+  galleryItems: AdminGalleryItem[];
+  orders: AdminOrder[];
+  inquiries: AdminInquiry[];
+}
+
+export default function AdminView({ products, galleryItems, orders, inquiries }: AdminViewProps) {
+  const [activeTab, setActiveTab] = useState<"SHOP" | "GALLERY" | "ORDERS" | "INQUIRIES">("ORDERS");
+  const [filterStatus, setFilterStatus] = useState<"ALL" | OrderStatus>("ALL");
   
-  const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editingGalleryItem, setEditingGalleryItem] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+  const [editingGalleryItem, setEditingGalleryItem] = useState<AdminGalleryItem | null>(null);
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -43,16 +105,19 @@ export default function AdminView({ products, galleryItems, orders }: AdminViewP
         <button onClick={() => setActiveTab("GALLERY")} className={`text-sm font-bold tracking-widest uppercase ${activeTab === "GALLERY" ? "text-black border-b-2 border-black pb-4 -mb-4.5" : "text-gray-400"}`}>
           Gallery
         </button>
+        <button onClick={() => setActiveTab("INQUIRIES")} className={`text-sm font-bold tracking-widest uppercase ${activeTab === "INQUIRIES" ? "text-black border-b-2 border-black pb-4 -mb-4.5" : "text-gray-400"}`}>
+          Inquiries ({inquiries.length})
+        </button>
       </div>
 
       {/* === ORDERS SECTION === */}
       {activeTab === "ORDERS" && (
         <div className="space-y-6">
             <div className="flex gap-2">
-                {["ALL", "PENDING", "PAID", "SHIPPED"].map((status) => {
+                {(["ALL", "PENDING", "PAID", "SHIPPED"] as const).map((status) => {
                     const count = status === "ALL" ? orders.length : orders.filter(o => o.status === status).length;
                     return (
-                        <button key={status} onClick={() => setFilterStatus(status as any)} className={`px-4 py-2 text-xs font-bold rounded-full border transition-all ${filterStatus === status ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
+                        <button key={status} onClick={() => setFilterStatus(status)} className={`px-4 py-2 text-xs font-bold rounded-full border transition-all ${filterStatus === status ? "bg-black text-white border-black" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
                             {status === "ALL" ? "All" : status.charAt(0) + status.slice(1).toLowerCase()} 
                             <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${filterStatus === status ? "bg-white text-black" : "bg-gray-100 text-gray-600"}`}>{count}</span>
                         </button>
@@ -74,7 +139,7 @@ export default function AdminView({ products, galleryItems, orders }: AdminViewP
                             <h3 className="font-bold text-sm mb-1">{order.user.name || "Guest"}</h3>
                             <p className="text-xs text-gray-500 mb-4">{order.user.email}</p>
                             <div className="space-y-1">
-                                {order.items.map((item: any) => (
+                                {order.items.map((item) => (
                                     <div key={item.id} className="flex items-center gap-2 text-sm"><span className="text-gray-400">{item.quantity}x</span><span>{item.product.title}</span></div>
                                 ))}
                             </div>
@@ -206,6 +271,61 @@ export default function AdminView({ products, galleryItems, orders }: AdminViewP
                  </div>
              ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === "INQUIRIES" && (
+        <div className="space-y-4">
+          {inquiries.length === 0 ? (
+            <div className="bg-white p-12 rounded-xl text-center text-gray-400 border border-gray-100 border-dashed">
+              No inquiries yet.
+            </div>
+          ) : (
+            inquiries.map((inquiry) => (
+              <div key={inquiry.id} className="bg-white border border-gray-100 rounded-lg p-6 flex flex-col lg:flex-row gap-6 justify-between">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-3 mb-3">
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-bold uppercase tracking-widest">
+                      {inquiry.inquiryType.replaceAll("_", " ")}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(inquiry.createdAt).toLocaleDateString("en-GB")}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-lg">{inquiry.name}</h3>
+                  <p className="text-sm text-gray-500">{inquiry.email}</p>
+                  {inquiry.company && (
+                    <p className="text-sm text-gray-500 mt-1">{inquiry.company}</p>
+                  )}
+
+                  <p className="text-sm text-gray-700 mt-4 leading-relaxed whitespace-pre-wrap">
+                    {inquiry.message}
+                  </p>
+                </div>
+
+                <div className="min-w-[220px] flex flex-col gap-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                    Status
+                  </span>
+                  <form action={updateInquiryStatus}>
+                    <input type="hidden" name="inquiryId" value={inquiry.id} />
+                    <select
+                      key={inquiry.status}
+                      name="status"
+                      defaultValue={inquiry.status}
+                      className="w-full bg-gray-50 border border-gray-200 text-xs rounded p-2 cursor-pointer hover:border-black transition-colors"
+                      onChange={(e) => e.target.form?.requestSubmit()}
+                    >
+                      <option value="NEW">New</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="CLOSED">Closed</option>
+                    </select>
+                  </form>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

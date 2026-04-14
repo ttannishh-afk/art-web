@@ -51,7 +51,7 @@ export default function ForSelfPage() {
               </div>
               <div>
                 <h3 className="font-bold text-lg mb-2 text-stone-800">You Seek Emotional Release</h3>
-                <p className="text-sm text-stone-500 leading-relaxed">Words aren't always enough. Art provides a safe container to process complex feelings without judgment.</p>
+                <p className="text-sm text-stone-500 leading-relaxed">Words aren&apos;t always enough. Art provides a safe container to process complex feelings without judgment.</p>
               </div>
            </div>
 
@@ -163,7 +163,7 @@ export default function ForSelfPage() {
          <div className="max-w-2xl mx-auto">
             <h4 className="font-bold uppercase tracking-widest text-xs text-stone-400 mb-6">Designed With Care</h4>
             <p className="font-serif text-2xl md:text-3xl text-stone-700 leading-relaxed mb-8">
-               "Our sessions are co-created with certified therapists and retreat facilitators to ensure a space that is not just creative, but emotionally safe and grounded."
+               &ldquo;Our sessions are co-created with certified therapists and retreat facilitators to ensure a space that is not just creative, but emotionally safe and grounded.&rdquo;
             </p>
             {/* Optional: Partner Logos */}
             <div className="flex justify-center gap-8 opacity-50 grayscale">
@@ -177,7 +177,7 @@ export default function ForSelfPage() {
       <section className="py-24 px-6 text-center">
          <h2 className="font-serif text-5xl md:text-6xl text-stone-800 mb-8">Begin Your Journey</h2>
          <p className="text-stone-500 mb-10 max-w-lg mx-auto">
-            You don't need to be an artist to make art. You just need to begin.
+            You don&apos;t need to be an artist to make art. You just need to begin.
          </p>
          <Link href="/contact" className="inline-block bg-stone-900 text-white px-12 py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-stone-700 transition-colors shadow-xl">
             Explore Sessions

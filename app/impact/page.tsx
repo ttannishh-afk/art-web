@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Target, Users, Heart, Lightbulb, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Target, Heart, Lightbulb, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function ImpactPage() {
   return (
@@ -12,7 +12,7 @@ export default function ImpactPage() {
           Designed for <br/> Meaningful Impact.
         </h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          We don't just "do art." We design experiences backed by psychology, facilitated with care, and measured by the connection it creates.
+          We don&apos;t just &ldquo;do art.&rdquo; We design experiences backed by psychology, facilitated with care, and measured by the connection it creates.
         </p>
       </section>
 

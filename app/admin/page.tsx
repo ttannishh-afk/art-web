@@ -1,14 +1,13 @@
 import { getServerSession } from "next-auth";
-import { authOptions, ADMIN_EMAILS } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { authOptions } from "@/lib/auth";
 import AdminView from "@/components/admin/AdminView";
-
-const prisma = new PrismaClient();
+import { isAdminEmail } from "@/lib/admin";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
+  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
     return <div className="p-20 text-center text-red-600">Access Denied</div>;
   }
 
@@ -20,14 +19,16 @@ export default async function AdminPage() {
   const rawOrders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-        user: true, // Get Customer Name/Email
+        user: true,
         items: {
-            include: { product: true } // Get Product Details
+            include: { product: true }
         }
     }
   });
+  const inquiries = await prisma.contactInquiry.findMany({
+    orderBy: { createdAt: "desc" },
+  });
 
-  // 2. SERIALIZATION: Fix 'Decimal' objects for Client Component
   const products = rawProducts.map((p) => ({ ...p, price: p.price.toString() }));
   
   const orders = rawOrders.map((order) => ({
@@ -55,7 +56,8 @@ export default async function AdminPage() {
         <AdminView 
             products={products} 
             galleryItems={galleryItems} 
-            orders={orders} 
+            orders={orders}
+            inquiries={inquiries}
         />
       </div>
     </div>

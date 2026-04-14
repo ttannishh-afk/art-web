@@ -1,37 +1,61 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Briefcase, Sun, Palette, Users, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react"; // 👈 Added hooks
+import { useState, useEffect } from "react";
 
-// 👇 The Slideshow Images
 const slides = [
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2800", // Abstract / Creative
+    image: "https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2800",
     alt: "Creative Flow"
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2800", // Corporate / Team
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2800",
     alt: "Team Collaboration"
   },
   {
     id: 3,
-    image: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=2800", // Nature / Calm
+    image: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=2800",
     alt: "Mindfulness"
   }
+];
+
+const pathCards = [
+  {
+    href: "/for-work",
+    icon: Briefcase,
+    title: "For Work",
+    description:
+      "Corporate workshops, office murals, and culture-building programs to engage your team.",
+    cta: "Building Culture",
+    image:
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1000",
+    theme: "dark" as const,
+  },
+  {
+    href: "/for-self",
+    icon: Sun,
+    title: "For Self",
+    description:
+      "Mindful art experiences, therapy collaborations, and creative retreats for healing.",
+    cta: "Find Calm",
+    image:
+      "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=1000",
+    theme: "light" as const,
+  },
 ];
 
 export default function Home() {
   const [current, setCurrent] = useState(0);
 
-  // 👇 Slideshow Timer
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrent((prev) => (prev + 1) % slides.length);
-    }, 5000); // Change every 5 seconds
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 
@@ -41,7 +65,6 @@ export default function Home() {
       {/* === HERO SECTION === */}
       <section className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-stone-900 text-white">
         
-        {/* 👇 DYNAMIC BACKGROUND SLIDESHOW */}
         {slides.map((slide, index) => (
           <div
             key={slide.id}
@@ -49,17 +72,18 @@ export default function Home() {
               index === current ? "opacity-40" : "opacity-0"
             }`}
           >
-            <img 
+            <Image
               src={slide.image}
               alt={slide.alt}
-              className="w-full h-full object-cover"
+              fill
+              priority={index === 0}
+              sizes="100vw"
+              className="object-cover"
             />
-            {/* Gradient Overlay for text readability */}
             <div className="absolute inset-0 bg-black/50" />
           </div>
         ))}
         
-        {/* Content (Stays on top) */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -93,7 +117,6 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Optional: Slide Indicators (Little dots at bottom) */}
         <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-3 z-10">
             {slides.map((_, idx) => (
                 <button 
@@ -108,43 +131,55 @@ export default function Home() {
       {/* === CHOOSE YOUR PATH === */}
       <section id="paths" className="py-24 px-6 md:px-10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          
-          {/* Path 1: For Work */}
-          <Link href="/for-work" className="group relative h-[500px] rounded-2xl overflow-hidden bg-gray-900 text-white flex items-end p-10 hover:shadow-2xl transition-all duration-500">
-             {/* Background Overlay */}
-             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1000')] bg-cover bg-center opacity-40 group-hover:scale-105 transition-transform duration-700" />
-             
-             <div className="relative z-10 w-full">
-                <div className="mb-4 bg-white/10 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md group-hover:bg-white group-hover:text-black transition-colors">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <h2 className="font-serif text-4xl mb-2">For Work</h2>
-                <p className="text-gray-300 text-sm mb-6 max-w-md">Corporate workshops, office murals, and culture-building programs to engage your team.</p>
-                <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all">
-                  Building Culture <ArrowRight className="w-4 h-4" />
-                </span>
-             </div>
-          </Link>
+          {pathCards.map((card) => (
+            <Link
+              key={card.href}
+              href={card.href}
+              className={`group relative h-[500px] rounded-2xl overflow-hidden flex items-end p-10 hover:shadow-2xl transition-all duration-500 ${
+                card.theme === "dark" ? "bg-gray-900 text-white" : "bg-stone-100 text-stone-900"
+              }`}
+            >
+              <Image
+                src={card.image}
+                alt={card.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className={`object-cover group-hover:scale-105 transition-transform duration-700 ${
+                  card.theme === "dark" ? "opacity-40" : "opacity-60"
+                }`}
+              />
+              <div
+                className={`absolute inset-0 opacity-80 ${
+                  card.theme === "dark"
+                    ? "bg-gradient-to-t from-black via-transparent to-transparent"
+                    : "bg-gradient-to-t from-stone-900/40 via-transparent to-transparent"
+                }`}
+              />
 
-          {/* Path 2: For Self */}
-          <Link href="/for-self" className="group relative h-[500px] rounded-2xl overflow-hidden bg-stone-100 text-stone-900 flex items-end p-10 hover:shadow-2xl transition-all duration-500">
-             {/* Background Overlay */}
-             <div className="absolute inset-0 bg-gradient-to-t from-stone-900/40 via-transparent to-transparent opacity-80" />
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=1000')] bg-cover bg-center opacity-60 group-hover:scale-105 transition-transform duration-700" />
-             
-             <div className="relative z-10 w-full">
-                <div className="mb-4 bg-white/80 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md group-hover:bg-stone-900 group-hover:text-white transition-colors">
-                  <Sun className="w-6 h-6" />
+              <div className="relative z-10 w-full">
+                <div
+                  className={`mb-4 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-colors ${
+                    card.theme === "dark"
+                      ? "bg-white/10 group-hover:bg-white group-hover:text-black"
+                      : "bg-white/80 group-hover:bg-stone-900 group-hover:text-white"
+                  }`}
+                >
+                  <card.icon className="w-6 h-6" />
                 </div>
-                <h2 className="font-serif text-4xl mb-2">For Self</h2>
-                <p className="text-stone-800 font-medium text-sm mb-6 max-w-md">Mindful art experiences, therapy collaborations, and creative retreats for healing.</p>
+                <h2 className="font-serif text-4xl mb-2">{card.title}</h2>
+                <p
+                  className={`text-sm mb-6 max-w-md ${
+                    card.theme === "dark" ? "text-gray-300" : "text-stone-800 font-medium"
+                  }`}
+                >
+                  {card.description}
+                </p>
                 <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all">
-                  Find Calm <ArrowRight className="w-4 h-4" />
+                  {card.cta} <ArrowRight className="w-4 h-4" />
                 </span>
-             </div>
-          </Link>
-
+              </div>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -153,7 +188,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto">
           <Sparkles className="w-8 h-8 mx-auto mb-6 text-stone-400" />
           <h2 className="font-serif text-3xl md:text-5xl mb-8 leading-tight text-stone-800">
-            "We believe creativity is a human need—not a luxury. When guided with intention, art becomes a powerful tool for transformation."
+            &ldquo;We believe creativity is a human need, not a luxury. When guided with intention, art becomes a powerful tool for transformation.&rdquo;
           </h2>
           <Link href="/about" className="text-xs font-bold uppercase tracking-widest border-b border-stone-800 pb-1 hover:text-stone-500 hover:border-stone-500 transition-colors">
             Read Our Philosophy

@@ -68,7 +68,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           setError(data.error || "Registration failed. Try a different email.");
         }
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false); // Re-enable the button

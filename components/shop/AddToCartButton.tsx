@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { addToCart } from "@/app/actions"; 
 import { Loader2, Check } from "lucide-react";
-import { useSession } from "next-auth/react"; // 👈 Get session status
-import { useAuthModal } from "@/components/providers/AuthModalProvider"; // 👈 Get global modal trigger
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useAuthModal } from "@/components/providers/AuthModalProvider";
 
 interface AddToCartButtonProps {
   isInCart?: boolean;
@@ -19,22 +20,24 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ data, isInCart = false }: AddToCartButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const { data: session } = useSession(); // 1. Check if user is logged in
-  const { openAuthModal } = useAuthModal(); // 2. Function to open the popup
+  const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const { openAuthModal } = useAuthModal();
 
   const handleAdd = () => {
-    // If already in cart, do nothing (button is technically disabled anyway, but safety first)
     if (isInCart) return;
+    setError(null);
 
-    // 3. If NOT logged in, open the popup and stop here
     if (!session) {
       openAuthModal();
       return;
     }
 
-    // 4. If logged in, proceed to server action
     startTransition(async () => {
-      await addToCart(data.id);
+      const result = await addToCart(data.id);
+      if (result?.error) {
+        setError(result.error);
+      }
     });
   };
 
@@ -42,7 +45,6 @@ export default function AddToCartButton({ data, isInCart = false }: AddToCartBut
     <div className="w-full">
       <button
         onClick={handleAdd}
-        // Disable if pending, no stock, OR already in cart
         disabled={isPending || data.maxStock <= 0 || isInCart}
         className={`w-full py-4 font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2
           ${isInCart 
@@ -66,11 +68,17 @@ export default function AddToCartButton({ data, isInCart = false }: AddToCartBut
         )}
       </button>
 
-      {/* Helper Message */}
       {isInCart && (
         <p className="text-center text-xs text-gray-500 mt-3">
-          This item is in your cart. You can adjust the quantity in the <a href="/cart" className="underline text-black">cart page</a>.
+          This item is in your cart. You can adjust the quantity in the{" "}
+          <Link href="/cart" className="underline text-black">
+            cart page
+          </Link>.
         </p>
+      )}
+
+      {error && (
+        <p className="text-center text-xs text-red-600 mt-3">{error}</p>
       )}
     </div>
   );

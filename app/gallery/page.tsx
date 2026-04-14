@@ -1,9 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-// Force dynamic rendering so new uploads show up instantly
 export const dynamic = 'force-dynamic';
 
 export default async function GalleryPage() {

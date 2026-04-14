@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShoppingBag, User, Hexagon, Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion"; 
-// 👇 Import the global hook
 import { useAuthModal } from "@/components/providers/AuthModalProvider"; 
 
 interface NavbarClientProps {
@@ -16,19 +15,17 @@ interface NavbarClientProps {
 
 export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) {
   const { data: session } = useSession();
-  const { openAuthModal } = useAuthModal(); // 👈 Use Global Hook
+  const { openAuthModal } = useAuthModal();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
 
   const getLinkClass = (path: string) => {
     return pathname === path 
       ? "text-sm font-bold text-black border-b-2 border-black pb-1 transition-all" 
       : "text-sm font-medium text-gray-500 hover:text-black transition-colors pb-1 border-b-2 border-transparent";
   };
+
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
     <>
@@ -80,7 +77,7 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
                 </Link>
               ) : (
                 <button 
-                  onClick={openAuthModal} // 👈 Using global function
+                  onClick={openAuthModal}
                   className="hidden md:block text-gray-700 hover:text-black transition-colors"
                 >
                    <User className="h-5 w-5" />
@@ -109,26 +106,29 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
           >
             <div className="flex flex-col space-y-4 border-b border-gray-100 pb-6">
                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Experiences</span>
-               <Link href="/for-work" className="text-2xl font-serif">For Work</Link>
-               <Link href="/for-self" className="text-2xl font-serif">For Self</Link>
+               <Link href="/for-work" onClick={closeMobileMenu} className="text-2xl font-serif">For Work</Link>
+               <Link href="/for-self" onClick={closeMobileMenu} className="text-2xl font-serif">For Self</Link>
             </div>
 
             <div className="flex flex-col space-y-4 border-b border-gray-100 pb-6">
                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Discover</span>
-               <Link href="/about" className="text-xl font-medium text-gray-600">About Us</Link>
-               <Link href="/impact" className="text-xl font-medium text-gray-600">Our Impact</Link>
-               <Link href="/gallery" className="text-xl font-medium text-gray-600">Gallery</Link>
-               <Link href="/shop" className="text-xl font-medium text-gray-600">Shop Art</Link>
+               <Link href="/about" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">About Us</Link>
+               <Link href="/impact" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">Our Impact</Link>
+               <Link href="/gallery" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">Gallery</Link>
+               <Link href="/shop" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">Shop Art</Link>
             </div>
 
             <div className="pt-2">
               {session ? (
-                 <Link href="/profile" className="flex items-center gap-3 text-lg font-medium">
+                 <Link href="/profile" onClick={closeMobileMenu} className="flex items-center gap-3 text-lg font-medium">
                     <User className="w-5 h-5" /> My Profile
                  </Link>
               ) : (
                  <button 
-                    onClick={openAuthModal} // 👈 Using global function
+                    onClick={() => {
+                      closeMobileMenu();
+                      openAuthModal();
+                    }}
                     className="flex items-center gap-3 text-lg font-medium"
                  >
                     <User className="w-5 h-5" /> Login / Join
@@ -137,15 +137,13 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
             </div>
 
             {isAdmin && (
-               <Link href="/admin" className="text-red-600 font-bold uppercase tracking-widest text-sm pt-4">
+               <Link href="/admin" onClick={closeMobileMenu} className="text-red-600 font-bold uppercase tracking-widest text-sm pt-4">
                   Admin Dashboard
                </Link>
             )}
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* ❌ REMOVED <AuthModal /> from here (It's now in Layout) */}
     </>
   );
 }

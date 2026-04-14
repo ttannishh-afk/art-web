@@ -1,18 +1,17 @@
 import { getServerSession } from "next-auth";
-import { authOptions, ADMIN_EMAILS } from "@/lib/auth"; // 👈 Import ADMIN_EMAILS
+import { authOptions } from "@/lib/auth";
 import NavbarClient from "./NavbarClient";
 import { prisma } from "@/lib/prisma";
+import { isAdminEmail } from "@/lib/admin";
 
 export async function Navbar() {
   const session = await getServerSession(authOptions);
   let cartCount = 0;
-  let isAdmin = false; // Default to false
+  let isAdmin = false;
 
   if (session?.user?.email) {
-    // 1. Check if user is Admin
-    isAdmin = ADMIN_EMAILS.includes(session.user.email);
+    isAdmin = isAdminEmail(session.user.email);
 
-    // 2. Calculate Cart Count
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: { 

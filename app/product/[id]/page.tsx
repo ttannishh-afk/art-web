@@ -1,27 +1,63 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/shop/AddToCartButton";
 import Image from "next/image";
-import { getServerSession } from "next-auth"; // 👈 New Import
-import { authOptions } from "@/lib/auth";     // 👈 New Import
-
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { siteUrl } from "@/lib/env";
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;
 }
 
+export async function generateMetadata(props: ProductPageProps): Promise<Metadata> {
+  const params = await props.params;
+  const product = await prisma.product.findUnique({
+    where: { id: params.id },
+    select: {
+      title: true,
+      description: true,
+      images: true,
+    },
+  });
+
+  if (!product) {
+    return {
+      title: "Artwork Not Found",
+    };
+  }
+
+  const image = product.images[0];
+
+  return {
+    title: product.title,
+    description: product.description,
+    openGraph: {
+      title: product.title,
+      description: product.description,
+      url: `${siteUrl}/product/${params.id}`,
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.title,
+      description: product.description,
+      images: image ? [image] : undefined,
+    },
+  };
+}
+
 export default async function ProductPage(props: ProductPageProps) {
   const params = await props.params;
-  const session = await getServerSession(authOptions); // 👈 Get Session
+  const session = await getServerSession(authOptions);
 
-  // 1. Fetch Product
   const product = await prisma.product.findUnique({
     where: { id: params.id },
   });
 
   if (!product) return notFound();
 
-  // 2. Check if Item is in Cart
   let isInCart = false;
   if (session?.user?.email) {
     const user = await prisma.user.findUnique({
@@ -33,8 +69,8 @@ export default async function ProductPage(props: ProductPageProps) {
       }
     });
 
-    if (user?.cart?.items) {
-      isInCart = user.cart.items.some(item => item.productId === product.id);
+      if (user?.cart?.items) {
+      isInCart = user.cart.items.some((item) => item.productId === product.id);
     }
   }
 
@@ -42,7 +78,6 @@ export default async function ProductPage(props: ProductPageProps) {
     <div className="min-h-screen bg-white pt-32 pb-20 px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
         
-        {/* Image Section */}
         <div className="relative aspect-[3/4] bg-gray-50 border border-gray-100">
            <Image
              src={product.images[0]}
@@ -54,7 +89,6 @@ export default async function ProductPage(props: ProductPageProps) {
            />
         </div>
 
-        {/* Details Section */}
         <div className="flex flex-col justify-center">
             <h1 className="font-serif text-4xl md:text-5xl mb-4">{product.title}</h1>
             <p className="text-sm tracking-widest text-gray-400 uppercase mb-8">{product.category}</p>
@@ -63,10 +97,9 @@ export default async function ProductPage(props: ProductPageProps) {
                 <p>{product.description}</p>
             </div>
             
-            {/* 3. Pass 'isInCart' prop to the button */}
             {product.stock > 0 ? (
               <AddToCartButton 
-                isInCart={isInCart} // 👈 Passing the status
+                isInCart={isInCart}
                 data={{
                   id: product.id,
                   title: product.title,

@@ -1,59 +1,92 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions, ADMIN_EMAILS } from "@/lib/auth";
 import { put } from "@vercel/blob";
-
+import { authOptions } from "@/lib/auth";
+import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import {
+  formatErrorMessage,
+  requireCategory,
+  requireGalleryCategory,
+  requireInquiryStatus,
+  requireNonNegativeInteger,
+  requireOrderStatus,
+  requirePrice,
+  requireText,
+  requireUuidLike,
+  validateImageFile,
+} from "@/lib/validation";
 
-async function checkAuth() {
+async function requireAdminSession() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
+
+  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
     throw new Error("Unauthorized: You are not an admin.");
   }
+
+  return session;
 }
 
 function generateFilename(title: string, originalFilename: string) {
-  const extension = originalFilename.split(".").pop();
+  const extension = originalFilename.split(".").pop()?.toLowerCase() || "jpg";
   const cleanTitle = title
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-");
-  
-  return `${cleanTitle}-${Date.now()}.${extension}`;
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `${cleanTitle || "upload"}-${Date.now()}.${extension}`;
 }
 
-// --- SHOP ACTIONS ---
-
-export async function upsertProduct(formData: FormData) {
-  await checkAuth();
-
-  const id = formData.get("id") as string | null;
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const price = formData.get("price") as string;
-  const category = formData.get("category") as any;
-  const stock = parseInt(formData.get("stock") as string);
-  
-  const imageFile = formData.get("image") as File;
-  let imagePath = "";
-
-  if (imageFile && imageFile.size > 0) {
-    const filename = generateFilename(title, imageFile.name);
-    const blob = await put(filename, imageFile, { access: 'public' });
-    imagePath = blob.url;
+async function uploadImage(title: string, file: File | null) {
+  if (!file) {
+    return "";
   }
 
+  const filename = generateFilename(title, file.name);
+  const blob = await put(filename, file, { access: "public" });
+
+  return blob.url;
+}
+
+export async function upsertProduct(formData: FormData) {
+  await requireAdminSession();
+
+  const id = formData.get("id");
+  const title = requireText(formData.get("title"), "Title", { max: 120 });
+  const description = requireText(formData.get("description"), "Description", {
+    min: 10,
+    max: 2000,
+  });
+  const price = requirePrice(formData.get("price"));
+  const category = requireCategory(formData.get("category"));
+  const stock = requireNonNegativeInteger(formData.get("stock"), "Stock");
+  const imageFile = validateImageFile(formData.get("image"), !id);
+
+  const imagePath = await uploadImage(title, imageFile);
+
   if (id) {
-    const data: any = { title, description, price, category, stock };
-    if (imagePath) data.images = [imagePath];
-    await prisma.product.update({ where: { id }, data });
+    const productId = requireUuidLike(id, "Product");
+    const data: {
+      title: string;
+      description: string;
+      price: number;
+      category: typeof category;
+      stock: number;
+      images?: string[];
+    } = { title, description, price, category, stock };
+
+    if (imagePath) {
+      data.images = [imagePath];
+    }
+
+    await prisma.product.update({ where: { id: productId }, data });
+    revalidatePath(`/product/${productId}`);
   } else {
-    if (!imagePath) throw new Error("Image is required for new products");
     await prisma.product.create({
       data: {
         title,
@@ -72,50 +105,52 @@ export async function upsertProduct(formData: FormData) {
 }
 
 export async function deleteProduct(formData: FormData) {
-  await checkAuth();
-  const id = formData.get("id") as string;
+  await requireAdminSession();
+  const id = requireUuidLike(formData.get("id"), "Product");
+
   await prisma.product.delete({ where: { id } });
+
   revalidatePath("/admin");
   revalidatePath("/shop");
 }
 
-// --- GALLERY ACTIONS ---
-
 export async function deleteGalleryItem(formData: FormData) {
-  await checkAuth();
-  const id = formData.get("id") as string;
+  await requireAdminSession();
+  const id = requireUuidLike(formData.get("id"), "Gallery item");
+
   await prisma.galleryItem.delete({ where: { id } });
+
   revalidatePath("/admin");
   revalidatePath("/gallery");
 }
 
 export async function upsertGalleryItem(formData: FormData) {
-  await checkAuth();
+  await requireAdminSession();
 
-  const id = formData.get("id") as string | null;
-  const title = formData.get("title") as string;
-  const year = formData.get("year") as string;
-  const size = formData.get("size") as string;
-  // 👇 NEW: Get Category from form
-  const category = formData.get("category") as any;
-  
-  const imageFile = formData.get("image") as File;
-  let src = "";
-
-  if (imageFile && imageFile.size > 0) {
-    const filename = generateFilename(title, imageFile.name);
-    const blob = await put(filename, imageFile, { access: 'public' });
-    src = blob.url;
-  }
+  const id = formData.get("id");
+  const title = requireText(formData.get("title"), "Title", { max: 120 });
+  const year = requireText(formData.get("year"), "Year", { max: 20 });
+  const size = requireText(formData.get("size"), "Size", { max: 20 });
+  const category = requireGalleryCategory(formData.get("category"));
+  const imageFile = validateImageFile(formData.get("image"), !id);
+  const src = await uploadImage(title, imageFile);
 
   if (id) {
-    // 👇 Update Category
-    const data: any = { title, year, size, category };
-    if (src) data.src = src;
-    await prisma.galleryItem.update({ where: { id }, data });
+    const galleryItemId = requireUuidLike(id, "Gallery item");
+    const data: {
+      title: string;
+      year: string;
+      size: string;
+      category: typeof category;
+      src?: string;
+    } = { title, year, size, category };
+
+    if (src) {
+      data.src = src;
+    }
+
+    await prisma.galleryItem.update({ where: { id: galleryItemId }, data });
   } else {
-    if (!src) throw new Error("Image is required");
-    // 👇 Create with Category
     await prisma.galleryItem.create({
       data: { title, year, size, src, category },
     });
@@ -126,9 +161,10 @@ export async function upsertGalleryItem(formData: FormData) {
 }
 
 export async function updateOrderStatus(formData: FormData) {
-  await checkAuth();
-  const orderId = formData.get("orderId") as string;
-  const newStatus = formData.get("status") as "PENDING" | "PAID" | "SHIPPED";
+  await requireAdminSession();
+
+  const orderId = requireUuidLike(formData.get("orderId"), "Order");
+  const newStatus = requireOrderStatus(formData.get("status"));
 
   await prisma.order.update({
     where: { id: orderId },
@@ -139,65 +175,104 @@ export async function updateOrderStatus(formData: FormData) {
   revalidatePath("/profile");
 }
 
-// --- CART ACTIONS ---
+export async function updateInquiryStatus(formData: FormData) {
+  await requireAdminSession();
+
+  const inquiryId = requireUuidLike(formData.get("inquiryId"), "Inquiry");
+  const newStatus = requireInquiryStatus(formData.get("status"));
+
+  await prisma.contactInquiry.update({
+    where: { id: inquiryId },
+    data: { status: newStatus },
+  });
+
+  revalidatePath("/admin");
+}
 
 export async function addToCart(productId: string) {
-  const session = await getServerSession(authOptions);
-  
-  // If not logged in, we can't add to cart (or you can handle redirect on client)
-  if (!session?.user?.email) return { error: "Not logged in" };
+  try {
+    const session = await getServerSession(authOptions);
 
-  // 1. Get User & Cart
-  const user = await prisma.user.findUnique({ 
-    where: { email: session.user.email },
-    include: { cart: true }
-  });
+    if (!session?.user?.email) {
+      return { error: "Not logged in" };
+    }
 
-  if (!user) return { error: "User not found" };
+    const validatedProductId = requireUuidLike(productId, "Product");
 
-  // 2. Create Cart if it doesn't exist
-  let cart = user.cart;
-  if (!cart) {
-    cart = await prisma.cart.create({
-      data: { userId: user.id }
+    const [user, product] = await Promise.all([
+      prisma.user.findUnique({
+        where: { email: session.user.email },
+        include: { cart: true },
+      }),
+      prisma.product.findUnique({
+        where: { id: validatedProductId },
+        select: { id: true, stock: true },
+      }),
+    ]);
+
+    if (!user) {
+      return { error: "User not found" };
+    }
+
+    if (!product) {
+      return { error: "Product not found" };
+    }
+
+    if (product.stock < 1) {
+      return { error: "This artwork is sold out." };
+    }
+
+    let cart = user.cart;
+    if (!cart) {
+      cart = await prisma.cart.create({
+        data: { userId: user.id },
+      });
+    }
+
+    const existingItem = await prisma.cartItem.findFirst({
+      where: { cartId: cart.id, productId: validatedProductId },
     });
-  }
 
-  // 3. Add Item (or Increment Quantity)
-  const existingItem = await prisma.cartItem.findFirst({
-    where: { cartId: cart.id, productId }
-  });
+    if (existingItem) {
+      return { error: "This artwork is already in your cart." };
+    }
 
-  if (existingItem) {
-    await prisma.cartItem.update({
-      where: { id: existingItem.id },
-      data: { quantity: existingItem.quantity + 1 }
-    });
-  } else {
     await prisma.cartItem.create({
-      data: { cartId: cart.id, productId, quantity: 1 }
+      data: { cartId: cart.id, productId: validatedProductId, quantity: 1 },
     });
-  }
 
-  // 4. ⚡️ THE MAGIC FIX ⚡️
-  // This forces the Navbar (and every other component) to refresh its data
-  revalidatePath("/", "layout");
+    revalidatePath("/", "layout");
+    revalidatePath("/cart");
+
+    return { success: true };
+  } catch (error) {
+    return { error: formatErrorMessage(error, "Unable to add this item to your cart.") };
+  }
 }
 
 export async function removeFromCart(cartItemId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return;
 
-  await prisma.cartItem.delete({
-    where: { id: cartItemId }
+  const validatedCartItemId = requireUuidLike(cartItemId, "Cart item");
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: { cart: true },
   });
 
-  // ⚡️ Refresh the Navbar count immediately
+  if (!user?.cart) return;
+
+  await prisma.cartItem.deleteMany({
+    where: {
+      id: validatedCartItemId,
+      cartId: user.cart.id,
+    },
+  });
+
   revalidatePath("/", "layout");
+  revalidatePath("/cart");
 }
-
-
-// app/actions.tsx
 
 export async function getCart() {
   const session = await getServerSession(authOptions);
@@ -209,63 +284,75 @@ export async function getCart() {
       cart: {
         include: {
           items: {
-            include: { product: true } 
-          }
-        }
-      }
-    }
+            include: { product: true },
+          },
+        },
+      },
+    },
   });
 
   if (!user?.cart?.items) return [];
 
-  return user.cart.items.map(item => ({
-    id: item.product.id,
-    cartItemId: item.id,
-    title: item.product.title,
-    
-    // 👇 FIX: Convert Decimal to String
-    price: item.product.price.toString(),
-    
-    image: item.product.images[0] || "",
-    quantity: item.quantity,
-    maxStock: item.product.stock
-  }));
+  return user.cart.items
+    .filter((item) => item.quantity > 0)
+    .map((item) => ({
+      id: item.product.id,
+      cartItemId: item.id,
+      title: item.product.title,
+      price: item.product.price.toString(),
+      image: item.product.images[0] || "",
+      quantity: item.quantity,
+      maxStock: item.product.stock,
+    }));
 }
-
-// ... (keep existing imports and actions)
 
 export async function updateCartItemQuantity(productId: string, newQuantity: number) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return;
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return { error: "Not logged in" };
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { cart: true }
-  });
+    const validatedProductId = requireUuidLike(productId, "Product");
+    const validatedQuantity = requireNonNegativeInteger(newQuantity, "Quantity");
 
-  if (!user?.cart) return;
-
-  if (newQuantity <= 0) {
-    // If quantity is 0 or less, remove the item
-    await prisma.cartItem.deleteMany({
-      where: { cartId: user.cart.id, productId }
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { cart: true },
     });
-  } else {
-    // Otherwise update the quantity
-    await prisma.cartItem.updateMany({
-      where: { cartId: user.cart.id, productId },
-      data: { quantity: newQuantity }
-    });
+
+    if (!user?.cart) return { error: "Cart not found" };
+
+    if (validatedQuantity <= 0) {
+      await prisma.cartItem.deleteMany({
+        where: { cartId: user.cart.id, productId: validatedProductId },
+      });
+    } else {
+      const product = await prisma.product.findUnique({
+        where: { id: validatedProductId },
+        select: { stock: true },
+      });
+
+      if (!product) {
+        return { error: "Product not found" };
+      }
+
+      if (validatedQuantity > product.stock) {
+        return { error: `Only ${product.stock} item(s) currently available.` };
+      }
+
+      await prisma.cartItem.updateMany({
+        where: { cartId: user.cart.id, productId: validatedProductId },
+        data: { quantity: validatedQuantity },
+      });
+    }
+
+    revalidatePath("/", "layout");
+    revalidatePath("/cart");
+
+    return { success: true };
+  } catch (error) {
+    return { error: formatErrorMessage(error, "Unable to update your cart.") };
   }
-
-  revalidatePath("/", "layout");
 }
-
-// ... (keep all existing imports and code)
-
-// app/actions.tsx
-
-// app/actions.tsx
 
 export async function placeOrder() {
   const session = await getServerSession(authOptions);
@@ -276,64 +363,70 @@ export async function placeOrder() {
     include: {
       cart: {
         include: {
-          items: { include: { product: true } }
-        }
-      }
-    }
+          items: { include: { product: true } },
+        },
+      },
+    },
   });
 
-  // 1. Validate Cart
   if (!user?.cart || user.cart.items.length === 0) {
     return { error: "Cart is empty" };
   }
 
-  // 2. ⚡️ Capture data safely here to satisfy TypeScript
   const cartItems = user.cart.items;
   const cartId = user.cart.id;
   const userId = user.id;
 
-  // Calculate Total
+  for (const item of cartItems) {
+    if (item.quantity <= 0) {
+      return { error: `Invalid quantity for ${item.product.title}.` };
+    }
+
+    if (item.product.stock < item.quantity) {
+      return {
+        error: `Only ${item.product.stock} item(s) left for ${item.product.title}.`,
+      };
+    }
+  }
+
   const total = cartItems.reduce((sum, item) => {
-    return sum + (Number(item.product.price) * item.quantity);
+    return sum + Number(item.product.price) * item.quantity;
   }, 0);
 
-  // 3. Database Transaction
   await prisma.$transaction(async (tx) => {
-    
-    // Create the Order
     await tx.order.create({
       data: {
-        userId: userId,
-        total: total,
+        userId,
+        total,
         status: "PENDING",
         items: {
-          create: cartItems.map(item => ({  // 👈 Using the safe variable here
+          create: cartItems.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: item.product.price
-          }))
-        }
-      }
+            price: item.product.price,
+          })),
+        },
+      },
     });
 
-    // Decrement Stock
     for (const item of cartItems) {
       await tx.product.update({
         where: { id: item.productId },
-        data: { 
-          stock: { decrement: item.quantity } 
-        }
+        data: {
+          stock: { decrement: item.quantity },
+        },
       });
     }
 
-    // Clear the Cart
     await tx.cartItem.deleteMany({
-      where: { cartId: cartId }
+      where: { cartId },
     });
   });
 
-  // 4. Finish
   revalidatePath("/", "layout");
   revalidatePath("/admin");
+  revalidatePath("/cart");
+  revalidatePath("/profile");
+
   redirect("/success");
 }

@@ -1,16 +1,44 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Package, User as UserIcon } from "lucide-react";
 import SignOutButton from "@/components/auth/SignOutButton";
 
+type OrderStatus = "PENDING" | "PAID" | "SHIPPED";
+
+interface ProfileOrderItem {
+  id: string;
+  quantity: number;
+  price: string;
+  product: {
+    id: string;
+    title: string;
+    images: string[];
+  };
+}
+
+interface ProfileOrder {
+  id: string;
+  createdAt: string | Date;
+  total: string;
+  status: OrderStatus;
+  items: ProfileOrderItem[];
+}
+
+interface ProfileUser {
+  name: string | null;
+  email: string;
+  orders: ProfileOrder[];
+}
+
 interface ProfileViewProps {
-  user: any; // Using 'any' to handle the serialized data easily
+  user: ProfileUser;
 }
 
 export default function ProfileView({ user }: ProfileViewProps) {
-  const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "PAID" | "SHIPPED">("ALL");
+  const [filterStatus, setFilterStatus] = useState<"ALL" | OrderStatus>("ALL");
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -21,7 +49,7 @@ export default function ProfileView({ user }: ProfileViewProps) {
   };
 
   // Filter Logic
-  const filteredOrders = user.orders.filter((order: any) => {
+  const filteredOrders = user.orders.filter((order) => {
     if (filterStatus === "ALL") return true;
     return order.status === filterStatus;
   });
@@ -53,15 +81,15 @@ export default function ProfileView({ user }: ProfileViewProps) {
 
             {/* Filter Pills */}
             <div className="flex flex-wrap gap-2">
-                {["ALL", "PENDING", "PAID", "SHIPPED"].map((status) => {
+                {(["ALL", "PENDING", "PAID", "SHIPPED"] as const).map((status) => {
                     const count = status === "ALL" 
                         ? user.orders.length 
-                        : user.orders.filter((o: any) => o.status === status).length;
+                        : user.orders.filter((o) => o.status === status).length;
 
                     return (
                         <button
                             key={status}
-                            onClick={() => setFilterStatus(status as any)}
+                            onClick={() => setFilterStatus(status)}
                             className={`px-4 py-2 text-xs font-bold rounded-full border transition-all ${
                                 filterStatus === status
                                 ? "bg-black text-white border-black"
@@ -85,7 +113,7 @@ export default function ProfileView({ user }: ProfileViewProps) {
           <div className="bg-gray-50 p-12 rounded-lg text-center border border-dashed border-gray-200">
             <p className="text-gray-500 mb-4">
                 {filterStatus === "ALL" 
-                    ? "You haven't placed any orders yet." 
+                    ? "You haven&apos;t placed any orders yet." 
                     : `No ${filterStatus.toLowerCase()} orders found.`}
             </p>
             {filterStatus === "ALL" && (
@@ -96,7 +124,7 @@ export default function ProfileView({ user }: ProfileViewProps) {
           </div>
         ) : (
           <div className="space-y-8">
-            {filteredOrders.map((order: any) => (
+            {filteredOrders.map((order) => (
               <div key={order.id} className="border border-gray-100 rounded-lg overflow-hidden hover:shadow-sm transition-shadow">
                 
                 {/* Order Header */}
@@ -122,14 +150,15 @@ export default function ProfileView({ user }: ProfileViewProps) {
 
                 {/* Order Items */}
                 <div className="p-6">
-                    {order.items.map((item: any) => (
+                    {order.items.map((item) => (
                         <div key={item.id} className="flex items-center gap-4 mb-4 last:mb-0">
                             <div className="w-16 h-16 bg-gray-100 relative overflow-hidden rounded-sm flex-shrink-0">
-                                {/* Use img for simplicity or Next Image if preferred */}
-                                <img 
-                                    src={item.product.images[0]} 
-                                    alt={item.product.title} 
-                                    className="object-cover w-full h-full"
+                                <Image
+                                    src={item.product.images[0]}
+                                    alt={item.product.title}
+                                    fill
+                                    sizes="64px"
+                                    className="object-cover"
                                 />
                             </div>
                             <div className="flex-1">

@@ -1,8 +1,7 @@
-import { PrismaClient, Category } from "@prisma/client";
+import { Category } from "@prisma/client";
 import Link from "next/link";
-import Image from "next/image"; // <--- 1. IMPORT THIS
-
-const prisma = new PrismaClient();
+import Image from "next/image";
+import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 interface ShopPageProps {

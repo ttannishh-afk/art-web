@@ -91,6 +91,31 @@ enum OrderStatus {
   SHIPPED
 }
 
+enum InquiryType {
+  CORPORATE_WORKSHOPS
+  OFFICE_MURALS
+  WELLNESS_RETREATS
+  PURCHASING_ART
+  OTHER
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+model ContactInquiry {
+  id          String        @id @default(uuid())
+  name        String
+  company     String?
+  email       String
+  inquiryType InquiryType
+  message     String
+  status      InquiryStatus @default(NEW)
+  createdAt   DateTime      @default(now())
+}
+
 // 👇 NEW: Categories for your "Holistic" platform
 enum GalleryCategory {
   ART           // Standard Paintings

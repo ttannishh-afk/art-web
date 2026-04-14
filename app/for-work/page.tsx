@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Zap, Users, Layout, Briefcase, BarChart } from "lucide-react";
+import { Zap, Users, Layout, Briefcase, BarChart } from "lucide-react";
 
 export default function ForWorkPage() {
   return (
@@ -41,7 +41,7 @@ export default function ForWorkPage() {
           <div className="md:w-1/3 sticky top-32">
              <h2 className="font-serif text-4xl mb-4">Why Art at Work?</h2>
              <p className="text-gray-500 mb-8">
-               Modern teams don't suffer from a lack of tools. They suffer from a lack of connection.
+               Modern teams don&apos;t suffer from a lack of tools. They suffer from a lack of connection.
              </p>
              <div className="h-1 w-20 bg-black"></div>
           </div>
@@ -111,7 +111,7 @@ export default function ForWorkPage() {
                   </div>
                   <h3 className="text-2xl font-serif mb-4">Office Murals</h3>
                   <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                     Transform blank walls into visual stories. We can paint *for* you, or design a "Paint-by-Numbers" mural your team paints together.
+                     Transform blank walls into visual stories. We can paint for you, or design a &ldquo;Paint-by-Numbers&rdquo; mural your team paints together.
                   </p>
                   <ul className="text-sm text-gray-500 space-y-2 mb-8">
                      <li>• Custom design process</li>
@@ -177,7 +177,7 @@ export default function ForWorkPage() {
                </div>
                <div className="p-8">
                   <h3 className="font-bold text-xl mb-2">Annual Leadership Offsite</h3>
-                  <p className="text-sm text-gray-600 mb-4">Facilitated a "Vision Board" painting session for 50 executives to align on company goals.</p>
+                  <p className="text-sm text-gray-600 mb-4">Facilitated a &ldquo;Vision Board&rdquo; painting session for 50 executives to align on company goals.</p>
                   <span className="text-xs font-bold uppercase tracking-widest text-blue-900">View Project</span>
                </div>
             </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus, Minus, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, Minus, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
-// 👇 IMPORT placeOrder HERE
 import { getCart, updateCartItemQuantity, removeFromCart, placeOrder } from "@/app/actions";
 
 // Match your DB structure
@@ -22,9 +22,9 @@ export default function CartPage() {
   const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // 1. Fetch Real Data on Mount
   useEffect(() => {
     async function loadCart() {
       const data = await getCart();
@@ -38,27 +38,32 @@ export default function CartPage() {
     return sum + (Number(item.price) * item.quantity);
   }, 0);
 
-  // 2. Handle Quantity Change (+ / -)
   const changeQty = async (productId: string, currentQty: number, delta: number, maxStock: number) => {
     const newQty = currentQty + delta;
     
-    // Limits check
     if (newQty < 1) return;
     if (newQty > maxStock) return;
+    setError(null);
 
-    // Optimistic UI Update (Update screen instantly)
+    const previousItems = items;
+
     setItems(prev => prev.map(item => 
       item.id === productId ? { ...item, quantity: newQty } : item
     ));
 
-    // Server Update
     startTransition(async () => {
-      await updateCartItemQuantity(productId, newQty);
+      const result = await updateCartItemQuantity(productId, newQty);
+
+      if (result?.error) {
+        setItems(previousItems);
+        setError(result.error);
+        router.refresh();
+      }
     });
   };
 
   const handleRemove = (cartItemId: string) => {
-    // Optimistic Remove
+    setError(null);
     setItems(prev => prev.filter(i => i.cartItemId !== cartItemId));
     
     startTransition(async () => {
@@ -66,10 +71,13 @@ export default function CartPage() {
     });
   };
 
-  // 👇 3. HANDLE CHECKOUT (New Logic)
   const handleCheckout = () => {
+    setError(null);
     startTransition(async () => {
-      await placeOrder();
+      const result = await placeOrder();
+      if (result?.error) {
+        setError(result.error);
+      }
     });
   };
 
@@ -106,9 +114,15 @@ export default function CartPage() {
               
               return (
               <div key={item.id} className="flex gap-6 py-6 border-b border-gray-100">
-                <div className="w-24 h-24 bg-gray-100 flex-shrink-0 relative">
+                <div className="w-24 h-24 bg-gray-100 flex-shrink-0 relative overflow-hidden">
                    {item.image && (
-                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        fill
+                        sizes="96px"
+                        className="object-cover"
+                      />
                    )}
                 </div>
                 
@@ -171,6 +185,10 @@ export default function CartPage() {
               <span>Total</span>
               <span>$ {total.toFixed(2)}</span>
             </div>
+
+            {error && (
+              <p className="text-sm text-red-600 mb-4">{error}</p>
+            )}
 
             <button
               onClick={handleCheckout}

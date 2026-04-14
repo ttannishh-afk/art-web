@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { X } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 
@@ -23,10 +24,12 @@ export function CartItem({ data }: CartItemProps) {
     <li className="flex py-6 border-b border-gray-100 last:border-0">
       {/* Image */}
       <div className="relative h-24 w-24 rounded-md overflow-hidden sm:h-32 sm:w-32 bg-gray-100">
-        <img
+        <Image
           src={data.image}
           alt={data.title}
-          className="object-cover object-center w-full h-full"
+          fill
+          sizes="(max-width: 640px) 96px, 128px"
+          className="object-cover object-center"
         />
       </div>
 
