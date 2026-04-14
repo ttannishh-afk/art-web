@@ -4,10 +4,25 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient();
+function getPrisma(): PrismaClient {
+  if (globalForPrisma.prisma) {
+    return globalForPrisma.prisma;
+  }
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+  const client = new PrismaClient();
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+
+  return client;
+}
+
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get: (_, prop) => {
+    const client = getPrisma();
+    return Reflect.get(client, prop);
+  },
+});
 
 export default prisma;

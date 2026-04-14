@@ -17,17 +17,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
-  const products = await prisma.product.findMany({
-    select: {
-      id: true,
-      createdAt: true,
-    },
-  });
+  let productRoutes: MetadataRoute.Sitemap = [];
 
-  const productRoutes = products.map((product) => ({
-    url: `${siteUrl}/product/${product.id}`,
-    lastModified: product.createdAt,
-  }));
+  try {
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        createdAt: true,
+      },
+    });
+
+    productRoutes = products.map((product) => ({
+      url: `${siteUrl}/product/${product.id}`,
+      lastModified: product.createdAt,
+    }));
+  } catch (error) {
+    // Silently handle database errors during build
+    console.debug("Sitemap: Unable to fetch products", error);
+  }
 
   return [...staticRoutes, ...productRoutes];
 }
