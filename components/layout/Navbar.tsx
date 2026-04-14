@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import NavbarClient from "./NavbarClient";
 import { prisma } from "@/lib/prisma";
-import { isAdminEmail } from "@/lib/admin";
 
 export async function Navbar() {
   const session = await getServerSession(authOptions);
@@ -10,19 +9,27 @@ export async function Navbar() {
   let isAdmin = false;
 
   if (session?.user?.email) {
-    isAdmin = isAdminEmail(session.user.email);
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        include: { 
+          cart: { 
+            include: { items: true } 
+          }
+        },
+        select: {
+          role: true,
+          cart: true,
+        }
+      });
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { 
-        cart: { 
-          include: { items: true } 
-        } 
+      if (user?.cart?.items) {
+        cartCount = user.cart.items.reduce((sum, item) => sum + item.quantity, 0);
       }
-    });
 
-    if (user?.cart?.items) {
-      cartCount = user.cart.items.reduce((sum, item) => sum + item.quantity, 0);
+      isAdmin = user?.role === "ADMIN";
+    } catch (error) {
+      console.debug("Navbar: Unable to fetch user data", error);
     }
   }
 

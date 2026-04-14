@@ -1,13 +1,22 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import AdminView from "@/components/admin/AdminView";
-import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+  if (!session?.user?.email) {
+    return <div className="p-20 text-center text-red-600">Access Denied</div>;
+  }
+
+  // Fetch user and check role
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (user?.role !== "ADMIN") {
     return <div className="p-20 text-center text-red-600">Access Denied</div>;
   }
 

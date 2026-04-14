@@ -1,13 +1,19 @@
-import { adminEmails } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
 
-const adminEmailSet = new Set(adminEmails);
-
-export function isAdminEmail(email?: string | null) {
+export async function isAdminUser(email?: string | null) {
   if (!email) {
     return false;
   }
 
-  return adminEmailSet.has(email.trim().toLowerCase());
-}
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: { role: true },
+    });
 
-export { adminEmails as ADMIN_EMAILS };
+    return user?.role === "ADMIN";
+  } catch (error) {
+    console.debug("Failed to check admin status", error);
+    return false;
+  }
+}

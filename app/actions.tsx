@@ -5,7 +5,6 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
-import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import {
   formatErrorMessage,
@@ -23,7 +22,16 @@ import {
 async function requireAdminSession() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized: You must be logged in.");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (user?.role !== "ADMIN") {
     throw new Error("Unauthorized: You are not an admin.");
   }
 
