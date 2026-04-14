@@ -12,14 +12,17 @@ export async function Navbar() {
     try {
       const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        include: { 
-          cart: { 
-            include: { items: true } 
-          }
-        },
-        select: {
+        select: { 
           role: true,
-          cart: true,
+          cart: {
+            select: {
+              items: {
+                select: {
+                  quantity: true
+                }
+              }
+            }
+          }
         }
       });
 
