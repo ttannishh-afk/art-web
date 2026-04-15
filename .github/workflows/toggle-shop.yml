@@ -1,0 +1,55 @@
+name: Toggle SHOP Feature
+
+on:
+  workflow_dispatch:
+    inputs:
+      shop_enabled:
+        description: "Enable or disable the SHOP feature"
+        required: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  toggle-shop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update Vercel Environment Variables
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          # Get the current env vars
+          ENV_RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID")
+          
+          # Find and delete existing SHOP_ENABLED var
+          ENV_ID=$(echo $ENV_RESPONSE | jq -r '.envs[] | select(.key=="SHOP_ENABLED") | .id' | head -1)
+          if [ ! -z "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env/$ENV_ID?teamId=$VERCEL_ORG_ID"
+          fi
+          
+          # Create new SHOP_ENABLED var
+          curl -s -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID" \
+            -d '{
+              "key": "SHOP_ENABLED",
+              "value": "${{ github.event.inputs.shop_enabled }}",
+              "target": ["production", "preview", "development"]
+            }'
+          
+          echo "✅ SHOP feature set to: ${{ github.event.inputs.shop_enabled }}"
+
+      - name: Comment on workflow
+        run: |
+          echo "🎯 SHOP Feature Status: ${{ github.event.inputs.shop_enabled }}"
+          echo "✅ Changes will be deployed on next Vercel deployment"
