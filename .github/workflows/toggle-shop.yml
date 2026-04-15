@@ -85,73 +85,14 @@ jobs:
           
           echo "✅ SHOP_ENABLED set to: ${{ github.event.inputs.shop_enabled }}"
 
-      - name: Trigger Vercel Deployment
+      - name: Deploy to Vercel
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: |
-          set -e
-          
-          echo "🚀 Triggering Vercel deployment..."
-          
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ] || [ -z "$VERCEL_ORG_ID" ]; then
-            echo "❌ Error: Missing required Vercel secrets"
-            exit 1
-          fi
-          
-          echo "📋 Project ID: $VERCEL_PROJECT_ID"
-          echo "📋 Org ID: $VERCEL_ORG_ID"
-          
-          echo "🔍 Verifying project exists..."
-          PROJECT_RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?teamId=$VERCEL_ORG_ID")
-          
-          PROJECT_CODE=$(echo "$PROJECT_RESPONSE" | tail -n 1)
-          PROJECT_BODY=$(echo "$PROJECT_RESPONSE" | head -n -1)
-          
-          if [ "$PROJECT_CODE" != "200" ]; then
-            echo "❌ Project not found (HTTP $PROJECT_CODE)"
-            echo "$PROJECT_BODY" | jq .
-            echo "⚠️  Verify VERCEL_PROJECT_ID and VERCEL_ORG_ID are correct"
-            exit 1
-          fi
-          echo "✅ Project verified"
-          
-          echo "📤 Triggering deployment..."
-          DEPLOY_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.vercel.com/v13/projects/$VERCEL_PROJECT_ID/deployments?teamId=$VERCEL_ORG_ID" \
-            -d "{}")
-          
-          DEPLOY_CODE=$(echo "$DEPLOY_RESPONSE" | tail -n 1)
-          DEPLOY_BODY=$(echo "$DEPLOY_RESPONSE" | head -n -1)
-          
-          echo "HTTP $DEPLOY_CODE"
-          echo "$DEPLOY_BODY" | jq .
-          
-          if [ "$DEPLOY_CODE" != "200" ] && [ "$DEPLOY_CODE" != "201" ]; then
-            echo "❌ Failed to trigger deployment"
-            exit 1
-          fi
-          
-          if echo "$DEPLOY_BODY" | jq -e '.error' > /dev/null 2>&1; then
-            echo "❌ Error in response"
-            exit 1
-          fi
-          
-          DEPLOYMENT_ID=$(echo "$DEPLOY_BODY" | jq -r '.id // empty')
-          if [ -z "$DEPLOYMENT_ID" ]; then
-            echo "❌ Failed to get deployment ID"
-            exit 1
-          fi
-          
-          echo "✅ Deployment triggered!"
-          echo "📦 ID: $DEPLOYMENT_ID"
-          
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Success Summary
         run: |
           echo "✅ SHOP_ENABLED toggle completed!"
           echo "📝 Value: ${{ github.event.inputs.shop_enabled }}"
-          echo "🚀 Vercel is redeploying..."
+          echo "🚀 Vercel deployment triggered successfully"
