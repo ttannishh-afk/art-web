@@ -61,4 +61,17 @@ jobs:
           fi
           
           echo "✅ SHOP_ENABLED successfully set to: ${{ github.event.inputs.shop_enabled }}"
-          echo "🚀 Vercel will auto-redeploy with the new setting"
+
+      - name: Trigger Vercel Deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          echo "🚀 Triggering Vercel deployment..."
+          
+          curl -s -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v13/deployments?teamId=$VERCEL_ORG_ID" \
+            -d '{"name":"art-portfolio"}' | jq .
+          
+          echo "✅ Deployment triggered! Vercel will redeploy with new SHOP_ENABLED value"
