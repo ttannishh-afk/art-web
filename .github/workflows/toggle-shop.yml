@@ -85,6 +85,9 @@ jobs:
           
           echo "✅ SHOP_ENABLED set to: ${{ github.event.inputs.shop_enabled }}"
 
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
       - name: Deploy to Vercel
         run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
