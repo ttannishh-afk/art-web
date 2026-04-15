@@ -28,50 +28,71 @@ jobs:
           
           echo "🔄 Updating SHOP_ENABLED to: ${{ github.event.inputs.shop_enabled }}"
           
-          # Get all environment variables
-          ENV_RESPONSE=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ] || [ -z "$VERCEL_ORG_ID" ]; then
+            echo "❌ Error: Missing required Vercel secrets"
+            exit 1
+          fi
+          
+          ENV_RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID")
           
-          # Extract the SHOP_ENABLED env var ID if it exists
-          ENV_ID=$(echo "$ENV_RESPONSE" | jq -r '.envs[] | select(.key=="SHOP_ENABLED") | .id' 2>/dev/null | head -1)
+          HTTP_CODE=$(echo "$ENV_RESPONSE" | tail -n 1)
+          BODY=$(echo "$ENV_RESPONSE" | head -n -1)
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Failed to fetch env vars. HTTP $HTTP_CODE"
+            echo "$BODY" | jq .
+            exit 1
+          fi
+          
+          ENV_ID=$(echo "$BODY" | jq -r '.envs[] | select(.key=="SHOP_ENABLED") | .id' 2>/dev/null | head -1)
           
           if [ ! -z "$ENV_ID" ] && [ "$ENV_ID" != "null" ]; then
             echo "✏️ Found existing SHOP_ENABLED, updating..."
-            # Update existing variable
-            curl -s -X PATCH \
+            UPDATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
               -H "Content-Type: application/json" \
               "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env/$ENV_ID?teamId=$VERCEL_ORG_ID" \
-              -d '{
-                "value": "${{ github.event.inputs.shop_enabled }}"
-              }' | jq .
+              -d '{"value": "${{ github.event.inputs.shop_enabled }}"}')
+            
+            UPDATE_CODE=$(echo "$UPDATE_RESPONSE" | tail -n 1)
+            UPDATE_BODY=$(echo "$UPDATE_RESPONSE" | head -n -1)
+            
+            if [ "$UPDATE_CODE" != "200" ]; then
+              echo "❌ Failed to update env var. HTTP $UPDATE_CODE"
+              echo "$UPDATE_BODY" | jq .
+              exit 1
+            fi
+            echo "✅ Environment variable updated"
           else
             echo "✨ Creating new SHOP_ENABLED variable..."
-            # Create new variable if it doesn't exist
-            curl -s -X POST \
+            CREATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
               -H "Content-Type: application/json" \
               "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID" \
-              -d '{
-                "key": "SHOP_ENABLED",
-                "value": "${{ github.event.inputs.shop_enabled }}",
-                "target": ["production", "preview", "development"],
-                "type": "plain"
-              }' | jq .
+              -d '{"key": "SHOP_ENABLED", "value": "${{ github.event.inputs.shop_enabled }}", "target": ["production", "preview", "development"], "type": "plain"}')
+            
+            CREATE_CODE=$(echo "$CREATE_RESPONSE" | tail -n 1)
+            CREATE_BODY=$(echo "$CREATE_RESPONSE" | head -n -1)
+            
+            if [ "$CREATE_CODE" != "201" ]; then
+              echo "❌ Failed to create env var. HTTP $CREATE_CODE"
+              echo "$CREATE_BODY" | jq .
+              exit 1
+            fi
+            echo "✅ Environment variable created"
           fi
           
-          echo "✅ SHOP_ENABLED successfully set to: ${{ github.event.inputs.shop_enabled }}"
+          echo "✅ SHOP_ENABLED set to: ${{ github.event.inputs.shop_enabled }}"
 
-      - name: Trigger Vercel Deployment
+      - name: Deploy to Vercel
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Success Summary
         run: |
-          echo "🚀 Triggering Vercel deployment..."
-          
-          curl -s -X POST \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            "https://api.vercel.com/v13/deployments?teamId=$VERCEL_ORG_ID" \
-            -d '{"name":"art-portfolio"}' | jq .
-          
-          echo "✅ Deployment triggered! Vercel will redeploy with new SHOP_ENABLED value"
+          echo "✅ SHOP_ENABLED toggle completed!"
+          echo "📝 Value: ${{ github.event.inputs.shop_enabled }}"
+          echo "🚀 Vercel deployment triggered successfully"
