@@ -1,41 +1,57 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import {
+  formatErrorMessage,
+  optionalText,
+  requireEmail,
+  requirePassword,
+} from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
     const { email, password, phone, name } = await req.json();
-
-    if (!email || !password) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-    }
+    const normalizedEmail = requireEmail(email);
+    const validatedPassword = requirePassword(password);
+    const validatedPhone = optionalText(phone, 30);
+    const validatedName = optionalText(name, 80);
 
     const exists = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (exists) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(validatedPassword, 10);
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
-        phone,
-        name,
+        phone: validatedPhone,
+        name: validatedName,
         cart: {
-            create: {} // Create an empty cart for the new user immediately
-        }
+          create: {},
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        createdAt: true,
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json({ success: true, user }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    console.error("Registration Error:", error);
+
+    return NextResponse.json(
+      { error: formatErrorMessage(error, "Unable to create your account.") },
+      { status: 400 },
+    );
   }
 }

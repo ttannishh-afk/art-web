@@ -2,19 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, User, Hexagon } from "lucide-react";
+import { ShoppingBag, User, Hexagon, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import AuthModal from "@/components/auth/AuthModal";
+import { motion, AnimatePresence } from "framer-motion"; 
+import { useAuthModal } from "@/components/providers/AuthModalProvider"; 
 
 interface NavbarClientProps {
   cartCount: number;
-  isAdmin: boolean; // 👈 New Prop
+  isAdmin: boolean;
 }
 
 export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) {
   const { data: session } = useSession();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { openAuthModal } = useAuthModal();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const getLinkClass = (path: string) => {
@@ -23,13 +25,15 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
       : "text-sm font-medium text-gray-500 hover:text-black transition-colors pb-1 border-b-2 border-transparent";
   };
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   return (
     <>
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="w-full px-6 md:px-10">
           <div className="flex justify-between items-center h-16">
             
-            {/* Logo */}
+            {/* LOGO */}
             <div className="flex-shrink-0 flex items-center gap-3">
               <div className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
                 <Hexagon className="h-5 w-5 fill-current" /> 
@@ -39,26 +43,25 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
               </Link>
             </div>
 
-            {/* Desktop Nav */}
-            <div className="hidden md:flex space-x-8">
+            {/* DESKTOP NAV */}
+            <div className="hidden lg:flex space-x-6">
               <Link href="/" className={getLinkClass("/")}>HOME</Link>
+              <Link href="/for-work" className={getLinkClass("/for-work")}>FOR WORK</Link>
+              <Link href="/for-self" className={getLinkClass("/for-self")}>FOR SELF</Link>
+              <Link href="/about" className={getLinkClass("/about")}>ABOUT</Link>
+              <Link href="/impact" className={getLinkClass("/impact")}>IMPACT</Link>
               <Link href="/gallery" className={getLinkClass("/gallery")}>GALLERY</Link>
               <Link href="/shop" className={getLinkClass("/shop")}>SHOP</Link>
-              <Link href="/about" className={getLinkClass("/about")}>ABOUT</Link>
-              <Link href="/contact" className={getLinkClass("/contact")}>CONTACT US</Link>
               
-              {/* 👇 ADMIN TAB (Only shows if isAdmin is true) */}
               {isAdmin && (
                 <Link href="/admin" className={`text-red-600 hover:text-red-800 ${getLinkClass("/admin")}`}>
-                  ADMIN CONTROL
+                  ADMIN
                 </Link>
               )}
             </div>
 
-            {/* Icons */}
-            <div className="flex items-center space-x-6">
-              
-              {/* CART ICON */}
+            {/* ICONS */}
+            <div className="flex items-center space-x-5">
               <Link href="/cart" className={`relative group ${pathname === "/cart" ? "text-black" : "text-gray-700"}`}>
                 <ShoppingBag className="h-5 w-5 group-hover:text-black transition-colors" />
                 {cartCount > 0 && (
@@ -68,22 +71,79 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
                 )}
               </Link>
 
-              {/* USER ICON */}
               {session ? (
-                <Link href="/profile" className={`text-gray-700 hover:text-black transition-colors ${pathname === "/profile" ? "text-black" : ""}`}>
+                <Link href="/profile" className={`hidden md:block text-gray-700 hover:text-black transition-colors ${pathname === "/profile" ? "text-black" : ""}`}>
                   <User className="h-5 w-5" />
                 </Link>
               ) : (
-                <button onClick={() => setShowAuthModal(true)} className="text-gray-700 hover:text-black transition-colors">
+                <button 
+                  onClick={openAuthModal}
+                  className="hidden md:block text-gray-700 hover:text-black transition-colors"
+                >
                    <User className="h-5 w-5" />
                 </button>
               )}
+
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                className="lg:hidden text-black focus:outline-none"
+              >
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      {/* MOBILE MENU */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 top-16 z-40 bg-white lg:hidden flex flex-col p-6 space-y-6 overflow-y-auto"
+          >
+            <div className="flex flex-col space-y-4 border-b border-gray-100 pb-6">
+               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Experiences</span>
+               <Link href="/for-work" onClick={closeMobileMenu} className="text-2xl font-serif">For Work</Link>
+               <Link href="/for-self" onClick={closeMobileMenu} className="text-2xl font-serif">For Self</Link>
+            </div>
+
+            <div className="flex flex-col space-y-4 border-b border-gray-100 pb-6">
+               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Discover</span>
+               <Link href="/about" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">About Us</Link>
+               <Link href="/impact" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">Our Impact</Link>
+               <Link href="/gallery" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">Gallery</Link>
+               <Link href="/shop" onClick={closeMobileMenu} className="text-xl font-medium text-gray-600">Shop Art</Link>
+            </div>
+
+            <div className="pt-2">
+              {session ? (
+                 <Link href="/profile" onClick={closeMobileMenu} className="flex items-center gap-3 text-lg font-medium">
+                    <User className="w-5 h-5" /> My Profile
+                 </Link>
+              ) : (
+                 <button 
+                    onClick={() => {
+                      closeMobileMenu();
+                      openAuthModal();
+                    }}
+                    className="flex items-center gap-3 text-lg font-medium"
+                 >
+                    <User className="w-5 h-5" /> Login / Join
+                 </button>
+              )}
+            </div>
+
+            {isAdmin && (
+               <Link href="/admin" onClick={closeMobileMenu} className="text-red-600 font-bold uppercase tracking-widest text-sm pt-4">
+                  Admin Dashboard
+               </Link>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

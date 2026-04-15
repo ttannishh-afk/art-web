@@ -1,11 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
-
-export const ADMIN_EMAILS = ["tanishgupta69@gmail.com"];
+import { prisma } from "@/lib/prisma";
+import { nextAuthSecret } from "@/lib/env";
+import { normalizeEmail } from "@/lib/validation";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,8 +18,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing credentials");
         }
 
+        const email = normalizeEmail(credentials.email);
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email },
         });
 
         if (!user) {
@@ -42,12 +42,22 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
+    async jwt({ token }) {
+      if (token.email) {
+        token.email = normalizeEmail(token.email);
+      }
+
+      return token;
+    },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub as string;
+        if (session.user.email) {
+          session.user.email = normalizeEmail(session.user.email);
+        }
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || "secret_key_change_me",
+  secret: nextAuthSecret,
 };

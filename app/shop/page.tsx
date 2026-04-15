@@ -1,8 +1,8 @@
-import { PrismaClient, Category } from "@prisma/client";
+import { Category } from "@prisma/client";
 import Link from "next/link";
-import Image from "next/image"; // <--- 1. IMPORT THIS
-
-const prisma = new PrismaClient();
+import Image from "next/image";
+import { prisma } from "@/lib/prisma";
+import { isShopEnabled } from "@/lib/features";
 export const dynamic = "force-dynamic";
 
 interface ShopPageProps {
@@ -10,6 +10,18 @@ interface ShopPageProps {
 }
 
 export default async function ShopPage(props: ShopPageProps) {
+  // Check if SHOP feature is enabled
+  if (!isShopEnabled()) {
+    return (
+      <div className="min-h-screen bg-white pt-32 px-6 pb-12 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-serif mb-4">Shop Coming Soon</h1>
+          <p className="text-gray-600">The shop feature is currently disabled.</p>
+        </div>
+      </div>
+    );
+  }
+
   const searchParams = await props.searchParams;
   const selectedCategory = searchParams.cat;
 

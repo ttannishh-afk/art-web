@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import {
+  formatErrorMessage,
+  requireNonNegativeInteger,
+  requireUuidLike,
+} from "@/lib/validation";
 
 // 1. GET: Fetch Cart (Includes maxStock logic)
 export async function GET() {
@@ -30,7 +33,7 @@ export async function GET() {
 
   // Inside the formattedItems map...
   const formattedItems = user.cart.items
-    .filter((item) => item.quantity > 0) // <--- ADD THIS FILTER
+    .filter((item) => item.quantity > 0)
     .map((item) => ({
       id: item.product.id,
       title: item.product.title,
@@ -45,79 +48,124 @@ export async function GET() {
 
 // 2. POST: Add Item to Cart
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  try {
+    const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { productId } = await req.json();
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { cart: true }
-  });
-
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-  let cartId = user.cart?.id;
-  if (!cartId) {
-    const newCart = await prisma.cart.create({ data: { userId: user.id } });
-    cartId = newCart.id;
-  }
-
-  const existing = await prisma.cartItem.findFirst({
-    where: { cartId, productId }
-  });
-
-  if (existing) {
-    return NextResponse.json({ message: "Item already in cart" });
-  }
-
-  await prisma.cartItem.create({
-    data: {
-      cartId,
-      productId,
-      quantity: 1
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-  });
 
-  return NextResponse.json({ success: true });
+    const { productId } = await req.json();
+    const validatedProductId = requireUuidLike(productId, "Product");
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { cart: true }
+    });
+
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    const product = await prisma.product.findUnique({
+      where: { id: validatedProductId },
+      select: { id: true, stock: true },
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    if (product.stock < 1) {
+      return NextResponse.json({ error: "Product is out of stock" }, { status: 400 });
+    }
+
+    let cartId = user.cart?.id;
+    if (!cartId) {
+      const newCart = await prisma.cart.create({ data: { userId: user.id } });
+      cartId = newCart.id;
+    }
+
+    const existing = await prisma.cartItem.findFirst({
+      where: { cartId, productId: validatedProductId }
+    });
+
+    if (existing) {
+      return NextResponse.json({ message: "Item already in cart" });
+    }
+
+    await prisma.cartItem.create({
+      data: {
+        cartId,
+        productId: validatedProductId,
+        quantity: 1
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: formatErrorMessage(error, "Unable to update the cart.") },
+      { status: 400 },
+    );
+  }
 }
 
 // 3. PUT: Update Quantity OR Remove Item
 export async function PUT(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { productId, quantity } = await req.json();
+    const { productId, quantity } = await req.json();
+    const validatedProductId = requireUuidLike(productId, "Product");
+    const validatedQuantity = requireNonNegativeInteger(quantity, "Quantity");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { cart: true }
-  });
-
-  if (!user || !user.cart) return NextResponse.json({ error: "Cart not found" }, { status: 404 });
-
-  // LOGIC CHANGE: If quantity is 0, DELETE the item. Otherwise, UPDATE it.
-  if (quantity === 0) {
-    await prisma.cartItem.deleteMany({
-      where: {
-        cartId: user.cart.id,
-        productId: productId,
-      }
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { cart: true }
     });
-  } else {
-    await prisma.cartItem.updateMany({
-      where: {
-        cartId: user.cart.id,
-        productId: productId,
-      },
-      data: {
-        quantity: quantity
+
+    if (!user || !user.cart) return NextResponse.json({ error: "Cart not found" }, { status: 404 });
+
+    if (validatedQuantity === 0) {
+      await prisma.cartItem.deleteMany({
+        where: {
+          cartId: user.cart.id,
+          productId: validatedProductId,
+        }
+      });
+    } else {
+      const product = await prisma.product.findUnique({
+        where: { id: validatedProductId },
+        select: { stock: true },
+      });
+
+      if (!product) {
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
       }
-    });
+
+      if (validatedQuantity > product.stock) {
+        return NextResponse.json(
+          { error: `Only ${product.stock} item(s) currently available.` },
+          { status: 400 },
+        );
+      }
+
+      await prisma.cartItem.updateMany({
+        where: {
+          cartId: user.cart.id,
+          productId: validatedProductId,
+        },
+        data: {
+          quantity: validatedQuantity
+        }
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: formatErrorMessage(error, "Unable to update the cart.") },
+      { status: 400 },
+    );
   }
-
-  return NextResponse.json({ success: true });
 }

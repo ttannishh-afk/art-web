@@ -2,10 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+
 async function main() {
   console.log("Start seeding...");
 
   // Clear DB to avoid duplicates
+  await prisma.contactInquiry.deleteMany();
   await prisma.cartItem.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.product.deleteMany();
