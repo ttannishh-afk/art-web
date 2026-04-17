@@ -88,8 +88,9 @@ export default async function ShopPage(props: ShopPageProps) {
                     src={product.images[0]}
                     alt={product.title}
                     fill // <--- Fills the parent container
+                    loading="eager"
                     className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Helps browser pick the right size
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                   
                   {/* Status Overlay */}

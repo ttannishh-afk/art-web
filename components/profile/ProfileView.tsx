@@ -157,7 +157,8 @@ export default function ProfileView({ user }: ProfileViewProps) {
                                     src={item.product.images[0]}
                                     alt={item.product.title}
                                     fill
-                                    sizes="64px"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    loading="eager"
                                     className="object-cover"
                                 />
                             </div>
