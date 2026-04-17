@@ -76,8 +76,8 @@ export default function Home() {
               src={slide.image}
               alt={slide.alt}
               fill
-              priority={index === 0}
-              sizes="100vw"
+              loading="eager"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-black/50" />

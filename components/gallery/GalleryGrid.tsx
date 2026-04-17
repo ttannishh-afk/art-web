@@ -78,6 +78,7 @@ export default function GalleryGrid({ items }: { items: GalleryItem[] }) {
                   alt={item.title}
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  loading="eager"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
 
