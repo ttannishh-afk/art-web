@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer"; 
 import { AuthProvider } from "@/components/providers/AuthProvider"; 
 import { AuthModalProvider } from "@/components/providers/AuthModalProvider"; 
+import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { siteUrl } from "@/lib/env";
 
@@ -55,16 +56,18 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <AuthModalProvider>
-            <Navbar />
-            <main className="min-h-screen"> 
-              {children}
-            </main>
-            <Footer />
-            <SpeedInsights />
-          </AuthModalProvider>
-        </AuthProvider>
+        <SmoothScrollProvider>
+          <AuthProvider>
+            <AuthModalProvider>
+              <Navbar />
+              <main className="min-h-screen"> 
+                {children}
+              </main>
+              <Footer />
+              <SpeedInsights />
+            </AuthModalProvider>
+          </AuthProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   );
