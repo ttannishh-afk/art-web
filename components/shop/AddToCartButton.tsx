@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { addToCart } from "@/app/actions"; 
 import { Loader2, Check } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
+import { toast } from "sonner";
 
 interface AddToCartButtonProps {
   isInCart?: boolean;
@@ -20,15 +21,14 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ data, isInCart = false }: AddToCartButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
   const { openAuthModal } = useAuthModal();
 
   const handleAdd = () => {
     if (isInCart) return;
-    setError(null);
 
     if (!session) {
+      toast.error("Please log in to add items to your cart.");
       openAuthModal();
       return;
     }
@@ -36,7 +36,9 @@ export default function AddToCartButton({ data, isInCart = false }: AddToCartBut
     startTransition(async () => {
       const result = await addToCart(data.id);
       if (result?.error) {
-        setError(result.error);
+        toast.error(result.error);
+      } else {
+        toast.success(`"${data.title}" added to cart.`);
       }
     });
   };
@@ -75,10 +77,6 @@ export default function AddToCartButton({ data, isInCart = false }: AddToCartBut
             cart page
           </Link>.
         </p>
-      )}
-
-      {error && (
-        <p className="text-center text-xs text-red-600 mt-3">{error}</p>
       )}
     </div>
   );

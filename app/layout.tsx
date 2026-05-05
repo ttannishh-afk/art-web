@@ -8,6 +8,7 @@ import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { siteUrl } from "@/lib/env";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
@@ -65,6 +66,18 @@ export default function RootLayout({
                 {children}
               </main>
               <Footer />
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  style: {
+                    fontFamily: "var(--font-inter)",
+                    fontSize: "13px",
+                    borderRadius: "12px",
+                    border: "1px solid #e4e4e7",
+                  },
+                  duration: 4000,
+                }}
+              />
               <SpeedInsights />
             </AuthModalProvider>
           </AuthProvider>

@@ -726,10 +726,10 @@ This project is private. All rights reserved.
 
 
 BUGS I want fixed:
-1. if any api not 200, respond with error on UI(user friendly)
-2. if user tries to access admin page without admin role, show "Access Denied"
-3. if user tries to add to cart without being logged in, show "Please log in
-4. ERROR HANDLING: If any API request fails (e.g., network error, server error), display a user-friendly error message on the UI instead of crashing or showing a generic error.
-5. year in any input shouldbe validated to be between 1900 and current year
-6. title, date(mm/yyyy), category, on_homepage(Y)/N should be required fields for gallery items
-7. 
+
+1. title, date(mm/yyyy), category(
+Murals & Spatial Art
+Corporate Art Experiences
+Weddings & Private Events
+Commissioned Canvases
+), on_homepage(Y)/N should be required fields for gallery items

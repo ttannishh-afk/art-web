@@ -7,7 +7,14 @@ export default async function AdminPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
-    return <div className="p-20 text-center text-red-600">Access Denied</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center max-w-md">
+          <h1 className="text-3xl font-serif text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-500">You do not have permission to access the admin command center. If you believe this is an error, please contact support.</p>
+        </div>
+      </div>
+    );
   }
 
   // Fetch user and check role
@@ -17,7 +24,14 @@ export default async function AdminPage() {
   });
 
   if (user?.role !== "ADMIN") {
-    return <div className="p-20 text-center text-red-600">Access Denied</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center max-w-md">
+          <h1 className="text-3xl font-serif text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-500">You do not have permission to access the admin command center. If you believe this is an error, please contact support.</p>
+        </div>
+      </div>
+    );
   }
 
   // 1. Fetch Data

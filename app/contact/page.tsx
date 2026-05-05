@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Mail, MapPin, Instagram } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 const inquiryOptions = [
   { label: "Corporate Workshops / Culture", value: "CORPORATE_WORKSHOPS" },
@@ -11,51 +13,43 @@ const inquiryOptions = [
   { label: "Other Inquiry", value: "OTHER" },
 ];
 
+interface ContactFormData {
+  name: string;
+  company?: string;
+  email: string;
+  inquiryType: string;
+  message: string;
+  website?: string;
+}
+
 export default function ContactPage() {
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormData>({
+    defaultValues: { inquiryType: inquiryOptions[0].value },
+  });
+
+  const onSubmit = async (data: ContactFormData) => {
     setLoading(true);
-    setError(null);
-
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-
-    const payload = {
-      name: formData.get("name"),
-      company: formData.get("company"),
-      email: formData.get("email"),
-      inquiryType: formData.get("inquiryType"),
-      message: formData.get("message"),
-      website: formData.get("website"),
-    };
-
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
 
-      const data = (await response.json()) as { error?: string };
+      const json = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(data.error || "Unable to send your inquiry.");
+        throw new Error(json.error || "Unable to send your inquiry.");
       }
 
-      form.reset();
-      setSuccess(true);
-    } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "Unable to send your inquiry.",
-      );
+      reset();
+      setSubmitted(true);
+      toast.success("Message sent! We'll be in touch soon.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to send your inquiry.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +101,7 @@ export default function ContactPage() {
         </div>
 
         <div className="bg-gray-50 p-8 md:p-12 rounded-2xl border border-gray-100 shadow-sm">
-          {success ? (
+          {submitted ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-10">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
                 <Mail className="w-8 h-8" />
@@ -117,46 +111,37 @@ export default function ContactPage() {
                 Thank you for reaching out. Your inquiry is now in our system and a member of the team will follow up soon.
               </p>
               <button
-                onClick={() => {
-                  setSuccess(false);
-                  setError(null);
-                }}
+                onClick={() => setSubmitted(false)}
                 className="mt-6 text-xs font-bold uppercase tracking-widest underline hover:text-blue-600"
               >
                 Send another message
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-                className="hidden"
-                aria-hidden="true"
-              />
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Honeypot */}
+              <input type="text" {...register("website")} tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Name</label>
                   <input
                     type="text"
-                    name="name"
-                    required
                     maxLength={80}
-                    className="w-full bg-white border border-gray-200 p-3 rounded focus:outline-none focus:border-black transition-colors text-sm"
                     placeholder="Full Name"
+                    className={`w-full bg-white border p-3 rounded focus:outline-none focus:border-black transition-colors text-sm ${errors.name ? "border-red-400" : "border-gray-200"}`}
+                    {...register("name", { required: "Name is required" })}
                   />
+                  {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Company (Optional)</label>
                   <input
                     type="text"
-                    name="company"
                     maxLength={120}
-                    className="w-full bg-white border border-gray-200 p-3 rounded focus:outline-none focus:border-black transition-colors text-sm"
                     placeholder="Organization"
+                    className="w-full bg-white border border-gray-200 p-3 rounded focus:outline-none focus:border-black transition-colors text-sm"
+                    {...register("company")}
                   />
                 </div>
               </div>
@@ -165,25 +150,22 @@ export default function ContactPage() {
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Email Address</label>
                 <input
                   type="email"
-                  name="email"
-                  required
                   maxLength={320}
-                  className="w-full bg-white border border-gray-200 p-3 rounded focus:outline-none focus:border-black transition-colors text-sm"
                   placeholder="name@example.com"
+                  className={`w-full bg-white border p-3 rounded focus:outline-none focus:border-black transition-colors text-sm ${errors.email ? "border-red-400" : "border-gray-200"}`}
+                  {...register("email", { required: "Email is required" })}
                 />
+                {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">I am interested in...</label>
                 <select
-                  name="inquiryType"
-                  defaultValue={inquiryOptions[0].value}
                   className="w-full bg-white border border-gray-200 p-3 rounded focus:outline-none focus:border-black transition-colors text-sm appearance-none cursor-pointer"
+                  {...register("inquiryType")}
                 >
                   {inquiryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
               </div>
@@ -191,19 +173,14 @@ export default function ContactPage() {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Message</label>
                 <textarea
-                  name="message"
-                  required
                   rows={4}
-                  minLength={20}
                   maxLength={3000}
-                  className="w-full bg-white border border-gray-200 p-3 rounded focus:outline-none focus:border-black transition-colors resize-none text-sm"
                   placeholder="Tell us about your project, timeline, or goals..."
+                  className={`w-full bg-white border p-3 rounded focus:outline-none focus:border-black transition-colors resize-none text-sm ${errors.message ? "border-red-400" : "border-gray-200"}`}
+                  {...register("message", { required: "Message is required", minLength: { value: 20, message: "Please write at least 20 characters" } })}
                 />
+                {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message.message}</p>}
               </div>
-
-              {error && (
-                <p className="text-sm text-red-600">{error}</p>
-              )}
 
               <button
                 type="submit"

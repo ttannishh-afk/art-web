@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import {
   upsertProduct,
@@ -27,10 +27,11 @@ interface AdminProduct {
 interface AdminGalleryItem {
   id: string;
   title: string;
-  year: string;
+  date: string;
   size: string;
   src: string;
   category: string;
+  onHomepage: boolean;
 }
 
 interface AdminOrder {
@@ -73,11 +74,27 @@ interface AdminViewProps {
 }
 
 export default function AdminView({ products, galleryItems, orders, inquiries }: AdminViewProps) {
-  const [activeTab, setActiveTab] = useState<"SHOP" | "GALLERY" | "ORDERS" | "INQUIRIES">("ORDERS");
+  const [activeTab, setActiveTab] = useState<"SHOP" | "GALLERY" | "ORDERS" | "INQUIRIES">("GALLERY");
   const [filterStatus, setFilterStatus] = useState<"ALL" | OrderStatus>("ALL");
   
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [editingGalleryItem, setEditingGalleryItem] = useState<AdminGalleryItem | null>(null);
+  const [detectedSize, setDetectedSize] = useState<string>("square");
+
+  const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      if (ratio > 1.2) setDetectedSize("wide");
+      else if (ratio < 0.8) setDetectedSize("tall");
+      else setDetectedSize("square");
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -96,12 +113,6 @@ export default function AdminView({ products, galleryItems, orders, inquiries }:
     <div>
       {/* TABS */}
       <div className="flex gap-8 mb-8 border-b border-gray-200 pb-4">
-        <button onClick={() => setActiveTab("ORDERS")} className={`text-sm font-bold tracking-widest uppercase ${activeTab === "ORDERS" ? "text-black border-b-2 border-black pb-4 -mb-4.5" : "text-gray-400"}`}>
-          Orders ({orders.length})
-        </button>
-        <button onClick={() => setActiveTab("SHOP")} className={`text-sm font-bold tracking-widest uppercase ${activeTab === "SHOP" ? "text-black border-b-2 border-black pb-4 -mb-4.5" : "text-gray-400"}`}>
-          Shop Inventory
-        </button>
         <button onClick={() => setActiveTab("GALLERY")} className={`text-sm font-bold tracking-widest uppercase ${activeTab === "GALLERY" ? "text-black border-b-2 border-black pb-4 -mb-4.5" : "text-gray-400"}`}>
           Gallery
         </button>
@@ -194,7 +205,7 @@ export default function AdminView({ products, galleryItems, orders, inquiries }:
             {products.map((p) => (
               <div key={p.id} className="bg-white p-4 rounded border border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="relative w-12 h-12 bg-gray-100 rounded overflow-hidden">{p.images[0] && <Image src={p.images[0]} alt="" fill className="object-cover" />}</div>
+                  <div className="relative w-12 h-12 bg-gray-100 rounded overflow-hidden">{p.images[0] && <Image src={p.images[0]} alt="" fill sizes="48px" className="object-cover" />}</div>
                   <div><p className="font-bold text-sm">{p.title}</p><p className="text-xs text-gray-500">${Number(p.price)} • Stock: {p.stock}</p></div>
                 </div>
                 <div className="flex gap-2">
@@ -213,30 +224,34 @@ export default function AdminView({ products, galleryItems, orders, inquiries }:
           {/* Create/Edit Form */}
           <div className="bg-white p-6 rounded-xl shadow-sm h-fit border border-gray-100">
             <h3 className="font-bold text-sm uppercase mb-4">{editingGalleryItem ? `Edit: ${editingGalleryItem.title}` : "Add Gallery Item"}</h3>
-            <form action={async (formData) => { await upsertGalleryItem(formData); setEditingGalleryItem(null); }} className="space-y-4">
+            <form action={async (formData) => { await upsertGalleryItem(formData); setEditingGalleryItem(null); setDetectedSize("square"); }} className="space-y-4">
               {editingGalleryItem && <input type="hidden" name="id" value={editingGalleryItem.id} />}
               <input name="title" defaultValue={editingGalleryItem?.title} placeholder="Title" required className="w-full border p-2 text-sm rounded" />
-              <div className="grid grid-cols-2 gap-2">
-                  <input name="year" defaultValue={editingGalleryItem?.year} placeholder="Year" required className="w-full border p-2 text-sm rounded" />
-                  <select name="size" defaultValue={editingGalleryItem?.size || "tall"} className="w-full border p-2 text-sm rounded">
-                      <option value="tall">Tall</option>
-                      <option value="wide">Wide</option>
-                      <option value="square">Square</option>
-                  </select>
-              </div>
+              <input name="date" defaultValue={editingGalleryItem?.date} placeholder="Date (mm/yyyy)" required pattern="^(0[1-9]|1[0-2])\/\d{4}$" className="w-full border p-2 text-sm rounded" />
+              {/* Size is auto-detected from image dimensions */}
+              <input type="hidden" name="size" value={editingGalleryItem ? editingGalleryItem.size : detectedSize} />
 
               {/* 👇 NEW: Category Dropdown */}
-              <select name="category" defaultValue={editingGalleryItem?.category || "ART"} className="w-full border p-2 text-sm rounded font-bold">
-                  <option value="ART">Art (Standard)</option>
-                  <option value="MURAL">Mural</option>
-                  <option value="WORKSHOP">Workshop</option>
-                  <option value="RETREAT">Retreat</option>
-                  <option value="STORY">Story / BTS</option>
+              <select name="category" defaultValue={editingGalleryItem?.category || "MURALS_SPATIAL_ART"} className="w-full border p-2 text-sm rounded font-bold">
+                  <option value="MURALS_SPATIAL_ART">Murals & Spatial Art</option>
+                  <option value="CORPORATE_ART_EXPERIENCES">Corporate Art Experiences</option>
+                  <option value="WEDDINGS_PRIVATE_EVENTS">Weddings & Private Events</option>
+                  <option value="COMMISSIONED_CANVASES">Commissioned Canvases</option>
+              </select>
+
+              <select name="onHomepage" defaultValue={editingGalleryItem?.onHomepage ? "true" : "false"} className="w-full border p-2 text-sm rounded font-bold">
+                  <option value="true">On Homepage (Y)</option>
+                  <option value="false">Not on Homepage (N)</option>
               </select>
 
               <div className="border border-dashed border-gray-300 p-4 rounded text-center">
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">{editingGalleryItem ? "Replace Image" : "Upload Image"}</label>
-                  <input name="image" type="file" accept="image/*" required={!editingGalleryItem} className="w-full text-xs" />
+                  <input name="image" type="file" accept="image/*" required={!editingGalleryItem} className="w-full text-xs" onChange={handleImageChange} />
+                  {!editingGalleryItem && (
+                    <p className="text-[10px] text-gray-400 mt-2">
+                      📐 Layout: <span className="font-bold capitalize text-gray-600">{detectedSize}</span> (auto-detected)
+                    </p>
+                  )}
               </div>
               <div className="flex gap-2">
                  {editingGalleryItem && <button type="button" onClick={() => setEditingGalleryItem(null)} className="flex-1 bg-gray-200 text-xs font-bold py-3 uppercase">Cancel</button>}
@@ -249,7 +264,7 @@ export default function AdminView({ products, galleryItems, orders, inquiries }:
           <div className="lg:col-span-2 grid grid-cols-3 md:grid-cols-4 gap-4">
              {galleryItems.map((item) => (
                  <div key={item.id} className="relative group aspect-square bg-gray-100 rounded overflow-hidden">
-                     <Image src={item.src} alt={item.title} fill className="object-cover" />
+                     <Image src={item.src} alt={item.title} fill sizes="(max-width: 768px) 33vw, 25vw" className="object-cover" />
                      
                      {/* Overlay showing Category */}
                      <div className="absolute top-2 right-2 z-10">

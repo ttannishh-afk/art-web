@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useAccentStore } from "@/hooks/use-accent";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -169,6 +170,7 @@ const clients = [
 
 export default function Home() {
   const mainRef = useRef<HTMLDivElement>(null);
+  const setIsBlue = useAccentStore((s) => s.setIsBlue);
   const pathRef = useRef<SVGPathElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -177,6 +179,7 @@ export default function Home() {
   const founderEndRef = useRef<HTMLDivElement>(null);
   const founderSectionRef = useRef<HTMLElement>(null);
   const founderNameRef = useRef<HTMLHeadingElement>(null);
+  const blueSplashRef = useRef<HTMLDivElement>(null);
 
   const anchorsRef = useRef<(HTMLDivElement | null)[]>([]);
   const setAnchor = (index: number) => (el: HTMLDivElement | null) => {
@@ -430,6 +433,7 @@ export default function Home() {
          const newIsBlue = docY > founderNameMiddleY;
          if (newIsBlue !== currentIsBlue) {
             currentIsBlue = newIsBlue;
+            setIsBlue(currentIsBlue);
             gsap.to(cursorRef.current, { backgroundColor: currentIsBlue ? "#2563eb" : "#e11d48", duration: 0.5 });
             gsap.to(cursorTrailRef.current, { borderColor: currentIsBlue ? "#93c5fd" : "#fca5a5", duration: 0.5 });
             if (dropRef.current) gsap.to(dropRef.current.querySelector("path"), { fill: currentIsBlue ? "#2563eb" : "#e11d48", duration: 0.5 });
@@ -437,6 +441,16 @@ export default function Home() {
             
             // Transition the trail-grad bottom parts
             gsap.to(".trail-grad-bottom", { stopColor: currentIsBlue ? "#2563eb" : "#e11d48", duration: 0.5 });
+
+            // Animate the blue splash on the founder section
+            if (blueSplashRef.current) {
+              gsap.to(blueSplashRef.current, {
+                opacity: currentIsBlue ? 1 : 0,
+                scale: currentIsBlue ? 1 : 0.6,
+                duration: 1.2,
+                ease: currentIsBlue ? "power3.out" : "power2.in",
+              });
+            }
          }
       }
 
@@ -509,6 +523,7 @@ export default function Home() {
     });
 
     return () => {
+      setIsBlue(false); // reset accent when leaving homepage
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("mousemove", onMouseMove);
       gsap.ticker.remove(update);
@@ -518,7 +533,7 @@ export default function Home() {
         link.removeEventListener("mouseleave", onLeave);
       });
     };
-  }, [samples, pathLength, drips]);
+  }, [samples, pathLength, drips, setIsBlue]);
 
   return (
     <div
@@ -721,7 +736,38 @@ export default function Home() {
           })}
         </div>
 
-        <section ref={founderSectionRef} className="relative min-h-screen px-6 md:px-12 py-24 pointer-events-auto">
+        <section ref={founderSectionRef} className="relative min-h-screen px-6 md:px-12 py-24 pointer-events-auto overflow-hidden">
+          {/* Blue ambient splash — fades in when cursor turns blue */}
+          <div
+            ref={blueSplashRef}
+            className="absolute inset-0 pointer-events-none z-0"
+            style={{ opacity: 0, transform: "scale(0.6)", transformOrigin: "60% 50%" }}
+          >
+            {/* Large radial bloom from right-center (where the name is) */}
+            <div
+              className="absolute rounded-full mix-blend-multiply"
+              style={{
+                right: "-10%",
+                top: "10%",
+                width: "70vw",
+                height: "70vw",
+                background: "radial-gradient(circle, rgba(37,99,235,0.18) 0%, rgba(147,197,253,0.10) 45%, transparent 70%)",
+                filter: "blur(40px)",
+              }}
+            />
+            {/* Smaller punchy bloom behind the portrait */}
+            <div
+              className="absolute rounded-full mix-blend-multiply"
+              style={{
+                left: "25%",
+                top: "20%",
+                width: "40vw",
+                height: "40vw",
+                background: "radial-gradient(circle, rgba(59,130,246,0.14) 0%, rgba(191,219,254,0.08) 50%, transparent 70%)",
+                filter: "blur(60px)",
+              }}
+            />
+          </div>
           <div ref={setAnchor(5)} className="absolute top-[18%] right-[18%] h-1 w-1" />
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.1fr_0.85fr] gap-12 items-center">
             <div className="reveal-element order-3 lg:order-1">

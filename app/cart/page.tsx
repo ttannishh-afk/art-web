@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Plus, Minus, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { getCart, updateCartItemQuantity, removeFromCart, placeOrder } from "@/app/actions";
 
 // Match your DB structure
@@ -22,7 +23,6 @@ export default function CartPage() {
   const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -43,7 +43,6 @@ export default function CartPage() {
     
     if (newQty < 1) return;
     if (newQty > maxStock) return;
-    setError(null);
 
     const previousItems = items;
 
@@ -56,15 +55,15 @@ export default function CartPage() {
 
       if (result?.error) {
         setItems(previousItems);
-        setError(result.error);
+        toast.error(result.error);
         router.refresh();
       }
     });
   };
 
   const handleRemove = (cartItemId: string) => {
-    setError(null);
     setItems(prev => prev.filter(i => i.cartItemId !== cartItemId));
+    toast.success("Item removed.");
     
     startTransition(async () => {
       await removeFromCart(cartItemId);
@@ -72,11 +71,13 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
-    setError(null);
     startTransition(async () => {
       const result = await placeOrder();
       if (result?.error) {
-        setError(result.error);
+        toast.error(result.error);
+      } else {
+        toast.success("Order placed successfully!");
+        router.push("/");
       }
     });
   };
@@ -186,10 +187,6 @@ export default function CartPage() {
               <span>Total</span>
               <span>$ {total.toFixed(2)}</span>
             </div>
-
-            {error && (
-              <p className="text-sm text-red-600 mb-4">{error}</p>
-            )}
 
             <button
               onClick={handleCheckout}

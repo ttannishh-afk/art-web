@@ -5,30 +5,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function Navbar() {
   const session = await getServerSession(authOptions);
-  let cartCount = 0;
   let isAdmin = false;
 
   if (session?.user?.email) {
     try {
       const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { 
-          role: true,
-          cart: {
-            select: {
-              items: {
-                select: {
-                  quantity: true
-                }
-              }
-            }
-          }
-        }
+        select: { role: true },
       });
-
-      if (user?.cart?.items) {
-        cartCount = user.cart.items.reduce((sum, item) => sum + item.quantity, 0);
-      }
 
       isAdmin = user?.role === "ADMIN";
     } catch (error) {
@@ -36,6 +20,5 @@ export async function Navbar() {
     }
   }
 
-  // Pass 'isAdmin' to the client component
-  return <NavbarClient cartCount={cartCount} isAdmin={isAdmin} />;
+  return <NavbarClient isAdmin={isAdmin} />;
 }

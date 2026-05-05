@@ -2,23 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, User, Hexagon, Menu, X } from "lucide-react";
+import { Hexagon, Menu, X, LogOut, LayoutDashboard, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion"; 
-import { useAuthModal } from "@/components/providers/AuthModalProvider"; 
+import { signOut } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
+import AdminLoginModal from "@/components/layout/AdminLoginModal";
+import { useAccentStore } from "@/hooks/use-accent";
 
 interface NavbarClientProps {
-  cartCount: number;
   isAdmin: boolean;
 }
 
-export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) {
-  const { data: session } = useSession();
-  const { openAuthModal } = useAuthModal();
+export default function NavbarClient({ isAdmin }: NavbarClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [hoverAdmin, setHoverAdmin] = useState(false);
+  const [hoverConnect, setHoverConnect] = useState(false);
   const pathname = usePathname();
+  const isBlue = useAccentStore((s) => s.isBlue);
+  const accentColor = isBlue ? "#2563eb" : "#e11d48"; // blue-600 or rose-600
 
   const navLinks = [
     { href: "/murals-spatial-art", label: "Murals & Spatial Art" },
@@ -27,11 +31,10 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
     { href: "/commissioned-canvases", label: "Commissioned Canvases" },
   ];
 
-  const getLinkClass = (path: string) => {
-    return pathname === path 
-      ? "text-xs font-bold text-black border-b-2 border-black pb-1 transition-all uppercase tracking-[0.16em]" 
+  const getLinkClass = (path: string) =>
+    pathname === path
+      ? "text-xs font-bold text-black border-b-2 border-black pb-1 transition-all uppercase tracking-[0.16em]"
       : "text-xs font-medium text-gray-500 hover:text-black transition-colors pb-1 border-b-2 border-transparent uppercase tracking-[0.16em]";
-  };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -40,6 +43,7 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
 
     const onScroll = () => {
       const currentY = window.scrollY;
+      setScrolled(currentY > 20);
 
       if (currentY < 24 || currentY < lastY) {
         setIsNavVisible(true);
@@ -56,23 +60,29 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
 
   return (
     <>
-      <nav className={`fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-all duration-500 ${
-        isNavVisible || isMobileMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
-      }`}>
+      <nav
+        className={`fixed top-0 w-full z-50 transition-all duration-500 ${
+          isNavVisible || isMobileMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+        } ${
+          scrolled
+            ? "bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm"
+            : "bg-white/90 backdrop-blur-md border-b border-gray-100"
+        }`}
+      >
         <div className="w-full px-6 md:px-10">
           <div className="grid h-16 grid-cols-[1fr_auto] items-center gap-4 xl:grid-cols-[1fr_2fr_1fr]">
-            
+
             {/* LOGO */}
             <div className="flex min-w-0 items-center gap-3">
               <div className="bg-black text-white p-1.5 rounded-md flex items-center justify-center">
-                <Hexagon className="h-5 w-5 fill-current" /> 
+                <Hexagon className="h-5 w-5 fill-current" />
               </div>
               <Link href="/" className="font-serif text-3xl tracking-tighter text-black leading-none pt-1">
                 LEHER
               </Link>
             </div>
 
-            {/* DESKTOP NAV */}
+            {/* DESKTOP NAV LINKS */}
             <div className="hidden xl:flex items-center justify-center gap-7">
               {navLinks.map((link) => (
                 <Link key={link.href} href={link.href} className={getLinkClass(link.href)}>
@@ -81,38 +91,71 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
               ))}
             </div>
 
-            {/* ICONS */}
-            <div className="flex items-center justify-end space-x-5">
-              <Link href="/cart" className={`relative group ${pathname === "/cart" ? "text-black" : "text-gray-700"}`}>
-                <ShoppingBag className="h-5 w-5 group-hover:text-black transition-colors" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-in zoom-in">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
+            {/* RIGHT SIDE CTA */}
+            <div className="flex items-center justify-end gap-3">
 
-              {session ? (
-                <Link href="/profile" className={`hidden md:block text-gray-700 hover:text-black transition-colors ${pathname === "/profile" ? "text-black" : ""}`}>
-                  <User className="h-5 w-5" />
-                </Link>
+              {isAdmin ? (
+                /* ── ADMIN IS LOGGED IN ── */
+                <div className="hidden md:flex items-center gap-2">
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest border px-3 py-1.5 rounded-full transition-all duration-200"
+                    style={{
+                      color: accentColor,
+                      borderColor: hoverAdmin ? accentColor : `${accentColor}50`,
+                      backgroundColor: hoverAdmin ? accentColor : "transparent",
+                    }}
+                    onMouseEnter={() => setHoverAdmin(true)}
+                    onMouseLeave={() => setHoverAdmin(false)}
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" style={{ color: hoverAdmin ? "white" : accentColor }} />
+                    <span style={{ color: hoverAdmin ? "white" : accentColor }}>Admin</span>
+                  </Link>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-black hover:bg-zinc-100 border border-zinc-200 hover:border-zinc-400 px-3 py-1.5 rounded-full transition-all duration-200"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Log out
+                  </button>
+                </div>
               ) : (
-                <button 
-                  onClick={openAuthModal}
-                  className="hidden md:block text-gray-700 hover:text-black transition-colors"
-                >
-                   <User className="h-5 w-5" />
-                </button>
+                /* ── NOT LOGGED IN ── */
+                <div className="hidden md:flex items-center gap-2">
+                  <button
+                    onClick={() => setIsAdminModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest border px-3 py-1.5 rounded-full transition-all duration-200"
+                    style={{
+                      color: hoverAdmin ? "#09090b" : "#71717a",
+                      borderColor: hoverAdmin ? "#09090b" : "#e4e4e7",
+                    }}
+                    onMouseEnter={() => setHoverAdmin(true)}
+                    onMouseLeave={() => setHoverAdmin(false)}
+                  >
+                    <Shield
+                      className="w-3.5 h-3.5 transition-colors"
+                      style={{ color: hoverAdmin ? accentColor : "#71717a" }}
+                    />
+                    Are you an admin?
+                  </button>
+                  <Link
+                    href="/contact"
+                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full transition-all duration-300"
+                    style={{
+                      backgroundColor: hoverConnect ? accentColor : "#09090b",
+                      color: "white",
+                    }}
+                    onMouseEnter={() => setHoverConnect(true)}
+                    onMouseLeave={() => setHoverConnect(false)}
+                  >
+                    Let&apos;s Connect
+                  </Link>
+                </div>
               )}
 
-              {isAdmin && (
-                <Link href="/admin" className="hidden xl:block text-xs font-bold uppercase tracking-[0.16em] text-red-600 hover:text-red-800">
-                  Admin
-                </Link>
-              )}
-
-              <button 
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              {/* MOBILE HAMBURGER */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="xl:hidden text-black focus:outline-none"
               >
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -131,9 +174,10 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
             exit={{ opacity: 0, y: -20 }}
             className="fixed inset-0 top-16 z-40 bg-white xl:hidden flex flex-col p-6 space-y-6 overflow-y-auto"
           >
+            {/* Nav links */}
             <div className="flex flex-col space-y-4 border-b border-gray-100 pb-6">
-               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Studio</span>
-               {navLinks.map((link) => (
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Studio</span>
+              {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -142,35 +186,58 @@ export default function NavbarClient({ cartCount, isAdmin }: NavbarClientProps) 
                 >
                   {link.label}
                 </Link>
-               ))}
+              ))}
             </div>
 
-            <div className="pt-2">
-              {session ? (
-                 <Link href="/profile" onClick={closeMobileMenu} className="flex items-center gap-3 text-lg font-medium">
-                    <User className="w-5 h-5" /> My Profile
-                 </Link>
+            {/* Mobile CTAs */}
+            <div className="pt-2 flex flex-col gap-4">
+              {isAdmin ? (
+                <>
+                  <Link
+                    href="/admin"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-2 text-rose-600 font-bold uppercase tracking-widest text-sm"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    Admin Dashboard
+                  </Link>
+                  <button
+                    onClick={() => { closeMobileMenu(); signOut({ callbackUrl: "/" }); }}
+                    className="flex items-center gap-2 text-zinc-500 font-bold uppercase tracking-widest text-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                  </button>
+                </>
               ) : (
-                 <button 
-                    onClick={() => {
-                      closeMobileMenu();
-                      openAuthModal();
-                    }}
-                    className="flex items-center gap-3 text-lg font-medium"
-                 >
-                    <User className="w-5 h-5" /> Login / Join
-                 </button>
+                <>
+                  <button
+                    onClick={() => { closeMobileMenu(); setIsAdminModalOpen(true); }}
+                    className="flex items-center gap-2 text-zinc-500 font-bold uppercase tracking-widest text-sm"
+                  >
+                    <Shield className="w-4 h-4" />
+                    Are you an admin?
+                  </button>
+                  <Link
+                    href="/contact"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-2 text-black font-bold uppercase tracking-widest text-sm"
+                  >
+                    Let&apos;s Connect →
+                  </Link>
+                </>
               )}
             </div>
-
-            {isAdmin && (
-               <Link href="/admin" onClick={closeMobileMenu} className="text-red-600 font-bold uppercase tracking-widest text-sm pt-4">
-                  Admin Dashboard
-               </Link>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ADMIN LOGIN MODAL — key forces remount/reset when reopened */}
+      <AdminLoginModal
+        key={isAdminModalOpen ? "open" : "closed"}
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
     </>
   );
 }

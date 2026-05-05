@@ -137,9 +137,22 @@ export async function upsertGalleryItem(formData: FormData) {
 
   const id = formData.get("id");
   const title = requireText(formData.get("title"), "Title", { max: 120 });
-  const year = requireText(formData.get("year"), "Year", { max: 20 });
+  const date = requireText(formData.get("date"), "Date (mm/yyyy)", { max: 20 });
+  
+  // Validate mm/yyyy format
+  if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(date)) {
+    throw new Error("Date must be in mm/yyyy format.");
+  }
+  
+  const yearInt = parseInt(date.split("/")[1], 10);
+  const currentYear = new Date().getFullYear();
+  if (yearInt < 1900 || yearInt > currentYear) {
+    throw new Error(`Year must be between 1900 and ${currentYear}.`);
+  }
+  
   const size = requireText(formData.get("size"), "Size", { max: 20 });
   const category = requireGalleryCategory(formData.get("category"));
+  const onHomepage = formData.get("onHomepage") === "true";
   const imageFile = validateImageFile(formData.get("image"), !id);
   const src = await uploadImage(title, imageFile);
 
@@ -147,11 +160,12 @@ export async function upsertGalleryItem(formData: FormData) {
     const galleryItemId = requireUuidLike(id, "Gallery item");
     const data: {
       title: string;
-      year: string;
+      date: string;
       size: string;
       category: typeof category;
+      onHomepage: boolean;
       src?: string;
-    } = { title, year, size, category };
+    } = { title, date, size, category, onHomepage };
 
     if (src) {
       data.src = src;
@@ -160,7 +174,7 @@ export async function upsertGalleryItem(formData: FormData) {
     await prisma.galleryItem.update({ where: { id: galleryItemId }, data });
   } else {
     await prisma.galleryItem.create({
-      data: { title, year, size, src, category },
+      data: { title, date, size, src, category, onHomepage },
     });
   }
 

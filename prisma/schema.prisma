@@ -117,19 +117,19 @@ model ContactInquiry {
 
 // 👇 NEW: Categories for your "Holistic" platform
 enum GalleryCategory {
-  ART           // Standard Paintings
-  MURAL         // Corporate/Space
-  WORKSHOP      // Events
-  RETREAT       // Wellness
-  STORY         // Behind the Scenes
+  MURALS_SPATIAL_ART
+  CORPORATE_ART_EXPERIENCES
+  WEDDINGS_PRIVATE_EVENTS
+  COMMISSIONED_CANVASES
 }
 
 model GalleryItem {
   id        String   @id @default(uuid())
   title     String
-  year      String
+  date      String   @default("01/2026")
   size      String   // "tall" | "wide" | "square"
   src       String   // Image path
-  category  GalleryCategory @default(ART) // 👈 NEW FIELD
+  category  GalleryCategory @default(MURALS_SPATIAL_ART) // 👈 NEW FIELD
+  onHomepage Boolean @default(false)
   createdAt DateTime @default(now())
 }

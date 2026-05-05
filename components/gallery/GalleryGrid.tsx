@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface GalleryItem {
   id: string;
   title: string;
-  year: string;
+  date: string;
   size: string;
   src: string;
   category: string; // The new field
@@ -24,11 +24,10 @@ export default function GalleryGrid({ items }: { items: GalleryItem[] }) {
 
   const categories = [
     { id: "ALL", label: "All Works" },
-    { id: "ART", label: "Fine Art" },
-    { id: "MURAL", label: "Murals" },
-    { id: "WORKSHOP", label: "Workshops" },
-    { id: "RETREAT", label: "Retreats" },
-    { id: "STORY", label: "Stories" },
+    { id: "MURALS_SPATIAL_ART", label: "Murals & Spatial Art" },
+    { id: "CORPORATE_ART_EXPERIENCES", label: "Corporate Art Experiences" },
+    { id: "WEDDINGS_PRIVATE_EVENTS", label: "Weddings & Private Events" },
+    { id: "COMMISSIONED_CANVASES", label: "Commissioned Canvases" },
   ];
 
   return (
@@ -91,7 +90,7 @@ export default function GalleryGrid({ items }: { items: GalleryItem[] }) {
                     {item.title}
                   </h3>
                   <p className="text-xs text-gray-300 uppercase tracking-widest">
-                    {item.year}
+                    {item.date}
                   </p>
                 </div>
               </div>

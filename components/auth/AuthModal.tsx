@@ -2,76 +2,73 @@
 
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { X, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface FormData {
+  name?: string;
+  phone?: string;
+  email: string;
+  password: string;
+}
+
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(""); // New: Store error messages
-  const [form, setForm] = useState({ email: "", password: "", phone: "", name: "" });
   const router = useRouter();
 
-  // Reset state when modal opens/closes or switches modes
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
+
   useEffect(() => {
-    setError("");
-    setForm({ email: "", password: "", phone: "", name: "" });
-  }, [isOpen, isLogin]);
+    reset();
+    setIsLogin(true);
+  }, [isOpen, reset]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    setError(""); // Clear previous errors
-
     try {
       if (isLogin) {
-        // --- LOGIN LOGIC ---
         const res = await signIn("credentials", {
           redirect: false,
-          email: form.email,
-          password: form.password,
+          email: data.email,
+          password: data.password,
         });
-        
         if (res?.error) {
-          setError("Invalid email or password.");
+          toast.error("Invalid email or password.");
         } else {
+          toast.success("Welcome back!");
           onClose();
           router.refresh();
         }
       } else {
-        // --- REGISTER LOGIC ---
         const res = await fetch("/api/register", {
           method: "POST",
-          body: JSON.stringify(form),
+          body: JSON.stringify(data),
           headers: { "Content-Type": "application/json" },
         });
-
-        const data = await res.json();
-
+        const json = await res.json() as { error?: string };
         if (res.ok) {
-          // Auto login after register
-          await signIn("credentials", {
-            redirect: false,
-            email: form.email,
-            password: form.password,
-          });
+          await signIn("credentials", { redirect: false, email: data.email, password: data.password });
+          toast.success("Account created! Welcome.");
           onClose();
           router.refresh();
         } else {
-          setError(data.error || "Registration failed. Try a different email.");
+          toast.error(json.error || "Registration failed. Try a different email.");
         }
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
-      setIsLoading(false); // Re-enable the button
+      setIsLoading(false);
     }
   };
 
@@ -93,58 +90,48 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {isLogin ? "Enter your details to access your account" : "Join us to start collecting art"}
         </p>
 
-        {/* ERROR MESSAGE DISPLAY */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {!isLogin && (
             <>
-              <input 
-                type="text" 
-                placeholder="Full Name" 
+              <div>
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  className={`w-full p-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all ${errors.name ? "border-red-400" : "border-gray-200"}`}
+                  {...register("name", { required: !isLogin })}
+                />
+                {errors.name && <p className="text-xs text-red-500 mt-1">Name is required</p>}
+              </div>
+              <input
+                type="tel"
+                placeholder="Phone Number"
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
-                value={form.name}
-                onChange={(e) => setForm({...form, name: e.target.value})}
-              />
-              <input 
-                type="tel" 
-                placeholder="Phone Number" 
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
-                value={form.phone}
-                onChange={(e) => setForm({...form, phone: e.target.value})}
+                {...register("phone")}
               />
             </>
           )}
-          
-          <input 
-            type="email" 
-            placeholder="Email" 
-            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
-            value={form.email}
-            onChange={(e) => {
-                setForm({...form, email: e.target.value});
-                if(error) setError(""); // Clear error when typing
-            }}
-            required 
-          />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
-            value={form.password}
-            onChange={(e) => {
-                setForm({...form, password: e.target.value});
-                if(error) setError(""); // Clear error when typing
-            }}
-            required 
-          />
 
-          <button 
+          <div>
+            <input
+              type="email"
+              placeholder="Email"
+              className={`w-full p-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all ${errors.email ? "border-red-400" : "border-gray-200"}`}
+              {...register("email", { required: "Email is required" })}
+            />
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              className={`w-full p-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all ${errors.password ? "border-red-400" : "border-gray-200"}`}
+              {...register("password", { required: "Password is required", minLength: { value: 8, message: "Min 8 characters" } })}
+            />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+          </div>
+
+          <button
             disabled={isLoading}
             className="w-full bg-black text-white py-4 font-medium rounded-lg hover:bg-gray-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-2"
           >
@@ -161,8 +148,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         <div className="mt-6 text-center text-sm text-gray-500">
           {isLogin ? "New here? " : "Already have an account? "}
-          <button 
-            onClick={() => setIsLogin(!isLogin)} 
+          <button
+            onClick={() => { setIsLogin(!isLogin); reset(); }}
             className="text-black font-semibold hover:underline"
           >
             {isLogin ? "Create Account" : "Login"}
