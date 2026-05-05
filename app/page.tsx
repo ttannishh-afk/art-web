@@ -179,7 +179,7 @@ export default function Home() {
   const founderEndRef = useRef<HTMLDivElement>(null);
   const founderSectionRef = useRef<HTMLElement>(null);
   const founderNameRef = useRef<HTMLHeadingElement>(null);
-  const blueSplashRef = useRef<HTMLDivElement>(null);
+  const bgTintRef = useRef<HTMLDivElement>(null);
 
   const anchorsRef = useRef<(HTMLDivElement | null)[]>([]);
   const setAnchor = (index: number) => (el: HTMLDivElement | null) => {
@@ -442,13 +442,12 @@ export default function Home() {
             // Transition the trail-grad bottom parts
             gsap.to(".trail-grad-bottom", { stopColor: currentIsBlue ? "#2563eb" : "#e11d48", duration: 0.5 });
 
-            // Animate the blue splash on the founder section
-            if (blueSplashRef.current) {
-              gsap.to(blueSplashRef.current, {
-                opacity: currentIsBlue ? 1 : 0,
-                scale: currentIsBlue ? 1 : 0.6,
-                duration: 1.2,
-                ease: currentIsBlue ? "power3.out" : "power2.in",
+            // Ambient background tint — rose before founder, blue after, mixed during transition
+            if (bgTintRef.current) {
+              gsap.to(bgTintRef.current, {
+                backgroundColor: currentIsBlue ? "rgba(219,234,254,0.22)" : "rgba(254,205,211,0.18)",
+                duration: 1.5,
+                ease: "power2.inOut",
               });
             }
          }
@@ -540,6 +539,13 @@ export default function Home() {
       ref={mainRef}
       className="relative w-full bg-[#fdfbf7] overflow-hidden text-zinc-900 selection:bg-rose-500 selection:text-white font-sans md:cursor-none"
     >
+      {/* Ambient background tint that shifts rose → blue with scroll */}
+      <div
+        ref={bgTintRef}
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ backgroundColor: "rgba(254,205,211,0.18)", transition: "background-color 0.05s" }}
+      />
+
       <div
         ref={cursorRef}
         className="fixed top-0 left-0 w-3 h-3 bg-rose-600 rounded-full pointer-events-none z-[100] -translate-x-1/2 -translate-y-1/2 hidden md:block"
@@ -736,38 +742,7 @@ export default function Home() {
           })}
         </div>
 
-        <section ref={founderSectionRef} className="relative min-h-screen px-6 md:px-12 py-24 pointer-events-auto overflow-hidden">
-          {/* Blue ambient splash — fades in when cursor turns blue */}
-          <div
-            ref={blueSplashRef}
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{ opacity: 0, transform: "scale(0.6)", transformOrigin: "60% 50%" }}
-          >
-            {/* Large radial bloom from right-center (where the name is) */}
-            <div
-              className="absolute rounded-full mix-blend-multiply"
-              style={{
-                right: "-10%",
-                top: "10%",
-                width: "70vw",
-                height: "70vw",
-                background: "radial-gradient(circle, rgba(37,99,235,0.18) 0%, rgba(147,197,253,0.10) 45%, transparent 70%)",
-                filter: "blur(40px)",
-              }}
-            />
-            {/* Smaller punchy bloom behind the portrait */}
-            <div
-              className="absolute rounded-full mix-blend-multiply"
-              style={{
-                left: "25%",
-                top: "20%",
-                width: "40vw",
-                height: "40vw",
-                background: "radial-gradient(circle, rgba(59,130,246,0.14) 0%, rgba(191,219,254,0.08) 50%, transparent 70%)",
-                filter: "blur(60px)",
-              }}
-            />
-          </div>
+        <section ref={founderSectionRef} className="relative min-h-screen px-6 md:px-12 py-24 pointer-events-auto">
           <div ref={setAnchor(5)} className="absolute top-[18%] right-[18%] h-1 w-1" />
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.1fr_0.85fr] gap-12 items-center">
             <div className="reveal-element order-3 lg:order-1">
