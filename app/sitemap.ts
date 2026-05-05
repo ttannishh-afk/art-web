@@ -6,12 +6,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     "",
     "/about",
+    "/commissioned-canvases",
     "/contact",
+    "/corporate-art-experiences",
     "/for-self",
     "/for-work",
     "/gallery",
     "/impact",
+    "/murals-spatial-art",
     "/shop",
+    "/weddings-private-events",
   ].map((route) => ({
     url: `${siteUrl}${route}`,
     lastModified: new Date(),

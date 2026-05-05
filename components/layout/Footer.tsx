@@ -15,11 +15,11 @@ export function Footer() {
               <div className="bg-black text-white p-1 rounded-md">
                 <Hexagon className="h-4 w-4 fill-current" /> 
               </div>
-              <span className="font-serif text-xl tracking-tight font-bold">TANISH GUPTA</span>
+              <span className="font-serif text-xl tracking-tight font-bold">LEHER</span>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed max-w-xs">
-              Exploring the boundary between organic chaos and digital structure. 
-              Visual alchemy for the modern era.
+              Murals, live art experiences, workshops, and commissioned paintings for spaces and
+              celebrations that deserve to feel alive.
             </p>
           </div>
 
@@ -53,7 +53,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
-          <p>© {new Date().getFullYear()} Tanish Gupta. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} LEHER. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <Link href="#" className="hover:text-black">Privacy Policy</Link>
             <Link href="#" className="hover:text-black">Terms of Service</Link>

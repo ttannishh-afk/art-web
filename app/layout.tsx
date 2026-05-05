@@ -15,13 +15,14 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfa
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Tanish Gupta | Visual Artist",
-    template: "%s | Tanish Gupta",
+    default: "LEHER | Tanvi Bansal",
+    template: "%s | LEHER",
   },
   description:
-    "Portfolio, gallery, and studio shop for Tanish Gupta, featuring original artworks, workshops, murals, and creative wellness experiences.",
+    "Murals, live art experiences, corporate workshops, wedding installations, and commissioned paintings by LEHER.",
   keywords: [
-    "Tanish Gupta",
+    "LEHER",
+    "Tanvi Bansal",
     "art portfolio",
     "visual artist",
     "art gallery",
@@ -30,18 +31,18 @@ export const metadata: Metadata = {
     "original paintings",
   ],
   openGraph: {
-    title: "Tanish Gupta | Visual Artist",
+    title: "LEHER | Tanvi Bansal",
     description:
-      "Portfolio, gallery, and studio shop for original artworks, workshops, murals, and creative wellness experiences.",
+      "Murals, live art experiences, corporate workshops, wedding installations, and commissioned paintings.",
     url: siteUrl,
-    siteName: "Tanish Gupta",
+    siteName: "LEHER",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tanish Gupta | Visual Artist",
+    title: "LEHER | Tanvi Bansal",
     description:
-      "Portfolio, gallery, and studio shop for original artworks, workshops, murals, and creative wellness experiences.",
+      "Murals, live art experiences, corporate workshops, wedding installations, and commissioned paintings.",
   },
   alternates: {
     canonical: "/",

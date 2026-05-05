@@ -731,3 +731,5 @@ BUGS I want fixed:
 3. if user tries to add to cart without being logged in, show "Please log in
 4. ERROR HANDLING: If any API request fails (e.g., network error, server error), display a user-friendly error message on the UI instead of crashing or showing a generic error.
 5. year in any input shouldbe validated to be between 1900 and current year
+6. title, date(mm/yyyy), category, on_homepage(Y)/N should be required fields for gallery items
+7. 

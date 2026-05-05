@@ -17,3 +17,40 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+@keyframes verticalShowcase {
+  0%, 24% {
+    transform: translateY(0);
+  }
+  33%, 57% {
+    transform: translateY(-16rem);
+  }
+  66%, 90% {
+    transform: translateY(-32rem);
+  }
+  100% {
+    transform: translateY(-48rem);
+  }
+}
+
+@keyframes logoMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.vertical-showcase-track {
+  animation: verticalShowcase 13s infinite ease-in-out;
+}
+
+.logo-marquee-track {
+  animation: logoMarquee 28s infinite linear;
+}
+
+.pause-on-hover:hover .vertical-showcase-track,
+.pause-on-hover:hover .logo-marquee-track {
+  animation-play-state: paused;
+}

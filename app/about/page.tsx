@@ -15,10 +15,10 @@ export default function AboutPage() {
             </h1>
             <div className="h-1 w-20 bg-black mb-8"></div>
             <p className="text-lg text-gray-600 leading-relaxed mb-6">
-              It is something you feel, share, and remember. At <strong>The Art Movement</strong>, we design immersive art experiences that bring people together—at work, in life, and within themselves.
+              It is something you feel, share, and remember. At <strong>LEHER</strong>, we design immersive art experiences that bring people together—at work, in life, and within themselves.
             </p>
             <p className="text-lg text-gray-600 leading-relaxed">
-              Founded by Tanish Gupta, we operate at the intersection of creativity and human connection, turning blank canvases into spaces for culture, calm, and community.
+              Founded by Tanvi Bansal, we operate at the intersection of creativity and human connection, turning blank canvases into spaces for culture, calm, and community.
             </p>
           </div>
           
@@ -97,7 +97,7 @@ export default function AboutPage() {
                     {/* <Image src="..." fill /> */}
                     <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-xs">PHOTO</div>
                  </div>
-                 <h4 className="font-bold text-lg">Tanish Gupta</h4>
+                 <h4 className="font-bold text-lg">Tanvi Bansal</h4>
                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Founder & Lead Artist</p>
                  <p className="text-sm text-gray-600">Visual artist exploring the relationship between human emotion and physical space.</p>
               </div>
