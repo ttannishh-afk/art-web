@@ -14,6 +14,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/gallery",
     "/impact",
     "/murals-spatial-art",
+    "/murals-spatial-art/corporate",
+    "/murals-spatial-art/residential",
     "/shop",
     "/weddings-private-events",
   ].map((route) => ({
